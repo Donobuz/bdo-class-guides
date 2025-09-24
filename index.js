@@ -134,9 +134,10 @@ async function handleSpecSelectionButton(interaction) {
     // Show guide creation modal
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
     
+    const totalSteps = guideType === 'pvp' ? '4' : '2';
     const modal = new ModalBuilder()
         .setCustomId(`submit_guide_step1_${className}_${guideType}_${spec}`)
-        .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${guideType.toUpperCase()} Guide - Step 1/2`);
+        .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${guideType.toUpperCase()} Guide - Step 1/${totalSteps}`);
 
     const descriptionInput = new TextInputBuilder()
         .setCustomId('description')
@@ -162,18 +163,10 @@ async function handleSpecSelectionButton(interaction) {
         .setRequired(true)
         .setMaxLength(500);
 
-    const crystalsInput = new TextInputBuilder()
-        .setCustomId('crystalsImage')
-        .setLabel('Crystals Image URL (Required)')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('https://imgur.com/example.png')
-        .setRequired(true);
-
     modal.addComponents(
         new ActionRowBuilder().addComponents(descriptionInput),
         new ActionRowBuilder().addComponents(prosInput),
-        new ActionRowBuilder().addComponents(consInput),
-        new ActionRowBuilder().addComponents(crystalsInput)
+        new ActionRowBuilder().addComponents(consInput)
     );
 
     await interaction.showModal(modal);
@@ -315,6 +308,8 @@ client.on(Events.InteractionCreate, async interaction => {
         
         // Try handler methods
         if (!handled) handled = await GuideCreateHandler.handleContinueStep2(interaction);
+        if (!handled) handled = await GuideCreateHandler.handleContinueStep3(interaction);
+        if (!handled) handled = await GuideCreateHandler.handleContinueStep4(interaction);
         if (!handled) handled = await GuideDeleteHandler.handleConfirmDelete(interaction);
         if (!handled) handled = await GuideDeleteHandler.handleDeleteAllUserGuides(interaction);
         
@@ -333,6 +328,8 @@ client.on(Events.InteractionCreate, async interaction => {
         if (!handled) handled = await GuideEditHandler.handleEditModal2(interaction);
         if (!handled) handled = await GuideCreateHandler.handleStep1Submission(interaction);
         if (!handled) handled = await GuideCreateHandler.handleStep2Submission(interaction);
+        if (!handled) handled = await GuideCreateHandler.handleStep3Submission(interaction);
+        if (!handled) handled = await GuideCreateHandler.handleStep4Submission(interaction);
         if (!handled) handled = await GuideCreateHandler.handleLegacySubmission(interaction);
         
         if (!handled) {

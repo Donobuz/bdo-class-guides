@@ -1,0 +1,30 @@
+{
+  "description": "Archer Description",
+  "pros": [
+    "Archer Pro 1",
+    "Archer Pro 2",
+    "Archer Pro 3"
+  ],
+  "cons": [
+    "Archer Pro 1",
+    "Archer Pro 2",
+    "Archer Pro 3"
+  ],
+  "submittedById": "143215050444767232",
+  "username": "Grovey",
+  "submittedAt": "2025-09-24T10:17:31.827Z",
+  "className": "Archer",
+  "guideType": "pvp",
+  "spec": "awakening",
+  "addonsImgur": "imgur",
+  "addonReasoning": "addon reasoning",
+  "crystalsImgur": "https://www.imgur.com",
+  "crystalInfo": "crystal extra",
+  "artifactsImgur": "https://www.imgur.com",
+  "lightstoneImgur": "lightstone set",
+  "reasoning": "artifact and lightstone reasoning",
+  "movementExample": "movement example w + f",
+  "movementVideo": "youtube link",
+  "pvpCombo": "Combo Example",
+  "combatVideo": "yup"
+}

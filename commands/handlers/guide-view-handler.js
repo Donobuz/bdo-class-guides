@@ -15,7 +15,7 @@ class GuideViewHandler {
                 
                 if (!allGuides || allGuides.length === 0) {
                     return await interaction.reply({
-                        content: `❌ No guides found for ${className} ${guideType.toUpperCase()}.`,
+                        content: 'No guides found for ${className} ${guideType.toUpperCase()}.',
                         ephemeral: true
                     });
                 }
@@ -63,7 +63,7 @@ class GuideViewHandler {
             } catch (error) {
                 console.error('Error loading guides:', error);
                 await interaction.reply({
-                    content: '❌ An error occurred while loading guides.',
+                    content: 'An error occurred while loading guides.',
                     ephemeral: true
                 });
             }
@@ -85,7 +85,7 @@ class GuideViewHandler {
                 
                 if (specGuides.length === 0) {
                     return await interaction.reply({
-                        content: `❌ No ${selectedSpec} guides found for ${className} ${guideType.toUpperCase()}.`,
+                        content: `No ${selectedSpec} guides found for ${className} ${guideType.toUpperCase()}.`,
                         ephemeral: true
                     });
                 }
@@ -119,7 +119,7 @@ class GuideViewHandler {
             } catch (error) {
                 console.error('Error loading spec guides:', error);
                 await interaction.reply({
-                    content: '❌ An error occurred while loading guides.',
+                    content: 'An error occurred while loading guides.',
                     ephemeral: true
                 });
             }
@@ -141,7 +141,7 @@ class GuideViewHandler {
                 
                 if (!guide) {
                     return await interaction.reply({
-                        content: `❌ Guide not found.`,
+                        content: `Guide not found.`,
                         ephemeral: true
                     });
                 }
@@ -152,26 +152,82 @@ class GuideViewHandler {
                     .setDescription(guide.description)
                     .setColor(config.colors[className.toLowerCase()] || config.colors.primary)
                     .addFields(
-                        { name: '✅ Pros', value: guide.pros.length > 0 ? guide.pros.map(pro => `• ${pro}`).join('\n') : 'None listed', inline: true },
-                        { name: '❌ Cons', value: guide.cons.length > 0 ? guide.cons.map(con => `• ${con}`).join('\n') : 'None listed', inline: true },
-                        { name: '\u200B', value: '\u200B', inline: false },
-                        { name: '💎 Crystals', value: guide.crystals.length > 0 ? guide.crystals.map(crystal => `• ${crystal}`).join('\n') : 'None listed', inline: true },
-                        { name: '🔧 Addons', value: guide.addons.length > 0 ? guide.addons.map(addon => `• ${addon}`).join('\n') : 'None listed', inline: true },
-                        { name: '\u200B', value: '\u200B', inline: false },
-                        { name: '🏃 Movement/Mobility', value: guide.movement || 'Not specified', inline: false }
+                        { name: 'Pros', value: guide.pros.length > 0 ? guide.pros.map(pro => `• ${pro}`).join('\n') : 'None listed', inline: true },
+                        { name: 'Cons', value: guide.cons.length > 0 ? guide.cons.map(con => `• ${con}`).join('\n') : 'None listed', inline: true },
+                        { name: '\u200B', value: '\u200B', inline: false }
                     )
                     .setFooter({ text: `Submitted by ${guide.username} | ${new Date(guide.submittedAt).toLocaleDateString()}` })
                     .setTimestamp();
                 
-                // Add combos if they exist
-                if (guide.combos && guide.combos.length > 0) {
-                    embed.addFields({ name: '⚔️ Combos', value: guide.combos.map(combo => `• ${combo}`).join('\n'), inline: false });
-                }
-                
-                // Add YouTube links if they exist
-                if (guide.ytLinks && guide.ytLinks.length > 0) {
-                    const ytLinksText = guide.ytLinks.map(link => `• ${link}`).join('\n');
-                    embed.addFields({ name: '📺 YouTube Links', value: ytLinksText, inline: false });
+                if (guideType === 'pvp') {
+                    // PvP Guide Fields
+                    
+                    // Addons & Crystals
+                    if (guide.addonsImgur) {
+                        embed.addFields({ name: 'Addons', value: `[View Addons Image](${guide.addonsImgur})`, inline: true });
+                        if (guide.addonReasoning) {
+                            embed.addFields({ name: '📝 Addon Reasoning', value: guide.addonReasoning.substring(0, 1024), inline: true });
+                        }
+                    }
+                    
+                    if (guide.crystalsImgur) {
+                        embed.addFields({ name: 'Crystals', value: `[View Crystals Image](${guide.crystalsImgur})`, inline: true });
+                        if (guide.crystalInfo) {
+                            embed.addFields({ name: 'Crystal Info', value: guide.crystalInfo.substring(0, 1024), inline: true });
+                        }
+                    }
+                    
+                    embed.addFields({ name: '\u200B', value: '\u200B', inline: false });
+                    
+                    // Artifacts & Lightstones
+                    if (guide.artifactsImgur) {
+                        embed.addFields({ name: 'Artifacts', value: `[View Artifacts Image](${guide.artifactsImgur})`, inline: true });
+                    }
+                    
+                    if (guide.lightstoneImgur) {
+                        embed.addFields({ name: 'Lightstones', value: `[View Lightstone Set](${guide.lightstoneImgur})`, inline: true });
+                    }
+                    
+                    if (guide.reasoning) {
+                        embed.addFields({ name: 'Reasoning', value: guide.reasoning.substring(0, 1024), inline: false });
+                    }
+                    
+                    embed.addFields({ name: '\u200B', value: '\u200B', inline: false });
+                    
+                    // Movement & Combat
+                    if (guide.movementExample) {
+                        embed.addFields({ name: 'Movement', value: guide.movementExample.substring(0, 1024), inline: false });
+                        if (guide.movementVideo) {
+                            embed.addFields({ name: 'Movement Video', value: `[View Movement Video](${guide.movementVideo})`, inline: true });
+                        }
+                    }
+                    
+                    if (guide.pvpCombo) {
+                        embed.addFields({ name: 'PvP Combos', value: guide.pvpCombo.substring(0, 1024), inline: false });
+                        if (guide.combatVideo) {
+                            embed.addFields({ name: 'Combat Video', value: `[View Combat Video](${guide.combatVideo})`, inline: true });
+                        }
+                    }
+                    
+                } else {
+                    // PvE Guide Fields (original format)
+                    embed.addFields(
+                        { name: 'Crystals', value: guide.crystals?.length > 0 ? guide.crystals.map(crystal => `• ${crystal}`).join('\n') : 'None listed', inline: true },
+                        { name: 'Addons', value: guide.addons?.length > 0 ? guide.addons.map(addon => `• ${addon}`).join('\n') : 'None listed', inline: true },
+                        { name: '\u200B', value: '\u200B', inline: false },
+                        { name: 'Movement/Mobility', value: guide.movement || 'Not specified', inline: false }
+                    );
+                    
+                    // Add combos if they exist
+                    if (guide.combos && guide.combos.length > 0) {
+                        embed.addFields({ name: 'Combos', value: guide.combos.map(combo => `• ${combo}`).join('\n'), inline: false });
+                    }
+                    
+                    // Add YouTube links if they exist
+                    if (guide.ytLinks && guide.ytLinks.length > 0) {
+                        const ytLinksText = guide.ytLinks.map(link => `• ${link}`).join('\n');
+                        embed.addFields({ name: 'YouTube Links', value: ytLinksText, inline: false });
+                    }
                 }
                 
                 await interaction.reply({

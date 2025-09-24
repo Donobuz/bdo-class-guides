@@ -66,9 +66,10 @@ module.exports = {
         // For ascension classes: go straight to guide creation modal
         if (isAscension) {
             try {
+                const totalSteps = guideType === 'pvp' ? '4' : '2';
                 const modal = new ModalBuilder()
                     .setCustomId(`submit_guide_step1_${className}_${guideType}_awakening`)
-                    .setTitle(`${createGuideTitle(className, guideType, 'awakening')} - Step 1/2`);
+                    .setTitle(`${createGuideTitle(className, guideType, 'awakening')} - Step 1/${totalSteps}`);
 
                 const descriptionInput = new TextInputBuilder()
                     .setCustomId('description')
@@ -94,18 +95,10 @@ module.exports = {
                     .setRequired(true)
                     .setMaxLength(500);
 
-                const crystalsInput = new TextInputBuilder()
-                    .setCustomId('crystalsImage')
-                    .setLabel('Crystals Image URL (Required)')
-                    .setStyle(TextInputStyle.Short)
-                    .setPlaceholder('https://imgur.com/example.png')
-                    .setRequired(true);
-
                 modal.addComponents(
                     new ActionRowBuilder().addComponents(descriptionInput),
                     new ActionRowBuilder().addComponents(prosInput),
-                    new ActionRowBuilder().addComponents(consInput),
-                    new ActionRowBuilder().addComponents(crystalsInput)
+                    new ActionRowBuilder().addComponents(consInput)
                 );
 
                 return await interaction.showModal(modal);
