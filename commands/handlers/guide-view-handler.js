@@ -1,5 +1,6 @@
 const { EmbedBuilder, StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { loadAllGuides } = require('../../utils/dataManager');
+const { createGuideTitle, formatSpecForDisplay } = require('../../utils/classUtils');
 const config = require('../../config.js');
 
 class GuideViewHandler {
@@ -104,7 +105,7 @@ class GuideViewHandler {
                 const row = new ActionRowBuilder().addComponents(selectMenu);
                 
                 const embed = new EmbedBuilder()
-                    .setTitle(`📖 ${className} ${guideType.toUpperCase()} - ${selectedSpec.charAt(0).toUpperCase() + selectedSpec.slice(1)}`)
+                    .setTitle(`📖 ${className} ${guideType.toUpperCase()} - ${formatSpecForDisplay(className, selectedSpec) || 'Guides'}`)
                     .setDescription(`Select a guide below to view the full details.`)
                     .setColor(config.colors[className.toLowerCase()] || config.colors.primary)
                     .setFooter({ text: `${specGuides.length} ${selectedSpec} guide(s) available` });
@@ -147,7 +148,7 @@ class GuideViewHandler {
                 
                 // Create the main guide embed
                 const embed = new EmbedBuilder()
-                    .setTitle(`${className} ${guideType.toUpperCase()} - ${spec.charAt(0).toUpperCase() + spec.slice(1)}`)
+                    .setTitle(createGuideTitle(className, guideType, spec))
                     .setDescription(guide.description)
                     .setColor(config.colors[className.toLowerCase()] || config.colors.primary)
                     .addFields(

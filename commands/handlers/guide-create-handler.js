@@ -1,5 +1,6 @@
 const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { saveGuideData } = require('../../utils/dataManager');
+const { createGuideTitle } = require('../../utils/classUtils');
 const config = require('../../config.js');
 
 class GuideCreateHandler {
@@ -11,7 +12,7 @@ class GuideCreateHandler {
                 // Create Step 2 modal
                 const modal = new ModalBuilder()
                     .setCustomId(`submit_guide_step2_${className}_${guideType}_${spec}`)
-                    .setTitle(`${className} ${guideType.toUpperCase()} Guide - Step 2/2`);
+                    .setTitle(`${createGuideTitle(className, guideType, spec)} - Step 2/2`);
                 
                 const addonsInput = new TextInputBuilder()
                     .setCustomId('addons')
@@ -88,7 +89,7 @@ class GuideCreateHandler {
                 
                 // Show preview and continue button
                 const embed = new EmbedBuilder()
-                    .setTitle(`${className} ${guideType.toUpperCase()} Guide - Step 1 Complete`)
+                    .setTitle(`${createGuideTitle(className, guideType, spec)} - Step 1 Complete`)
                     .setDescription('✅ Step 1 data saved! Click "Continue to Step 2" to complete your guide.')
                     .addFields(
                         { name: 'Description', value: description.substring(0, 1024), inline: false },

@@ -31,8 +31,43 @@ function getPrimarySpec(className) {
     return isAscensionClass(className) ? 'awakening' : 'succession';
 }
 
+/**
+ * Format a spec name for display (hide awakening for ascension classes)
+ * @param {string} className - The class name
+ * @param {string} spec - The spec name (awakening/succession)
+ * @returns {string} - Formatted spec name or empty string for ascension awakening
+ */
+function formatSpecForDisplay(className, spec) {
+    // For ascension classes, don't show "Awakening" in the title since they only have one spec
+    if (isAscensionClass(className) && spec === 'awakening') {
+        return '';
+    }
+    return spec.charAt(0).toUpperCase() + spec.slice(1);
+}
+
+/**
+ * Create a guide title with proper spec formatting
+ * @param {string} className - The class name
+ * @param {string} guideType - The guide type (pve/pvp)
+ * @param {string} spec - The spec name (awakening/succession)
+ * @returns {string} - Formatted title
+ */
+function createGuideTitle(className, guideType, spec) {
+    const classNameFormatted = className.charAt(0).toUpperCase() + className.slice(1);
+    const guideTypeFormatted = guideType.toUpperCase();
+    const specFormatted = formatSpecForDisplay(className, spec);
+    
+    if (specFormatted) {
+        return `${classNameFormatted} ${guideTypeFormatted} - ${specFormatted}`;
+    } else {
+        return `${classNameFormatted} ${guideTypeFormatted} Guide`;
+    }
+}
+
 module.exports = {
     isAscensionClass,
     getAvailableSpecs,
-    getPrimarySpec
+    getPrimarySpec,
+    formatSpecForDisplay,
+    createGuideTitle
 };

@@ -1,8 +1,9 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
-const { hasGuidePermission } = require('../utils/permissions');
+const { SlashCommandBuilder, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { hasGuidePermission, checkPermissions } = require('../utils/permissions');
 const { loadAllGuidesForClassType } = require('../utils/dataManager');
 const { createGuideSelectionEmbed } = require('../utils/embedBuilder');
-const { isAscensionClass, getPrimarySpec } = require('../utils/classUtils');
+const { isAscensionClass, getPrimarySpec, createGuideTitle } = require('../utils/classUtils');
+const config = require('../config.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -67,7 +68,7 @@ module.exports = {
             try {
                 const modal = new ModalBuilder()
                     .setCustomId(`submit_guide_step1_${className}_${guideType}_awakening`)
-                    .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${guideType.toUpperCase()} Guide - Step 1/2`);
+                    .setTitle(`${createGuideTitle(className, guideType, 'awakening')} - Step 1/2`);
 
                 const descriptionInput = new TextInputBuilder()
                     .setCustomId('description')

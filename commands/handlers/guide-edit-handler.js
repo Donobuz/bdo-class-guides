@@ -1,5 +1,6 @@
 const { EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const { loadAllGuidesForClassType, saveGuideData } = require('../../utils/dataManager');
+const { createGuideTitle } = require('../../utils/classUtils');
 const config = require('../../config.js');
 
 class GuideEditHandler {
@@ -24,7 +25,7 @@ class GuideEditHandler {
                 // Create first modal with existing data
                 const modal = new ModalBuilder()
                     .setCustomId(`edit_guide_modal1_${className}_${guideType}_${spec}_${userId}`)
-                    .setTitle(`Edit ${className} ${guideType.toUpperCase()} Guide - Step 1/2`);
+                    .setTitle(`Edit ${createGuideTitle(className, guideType, spec)} - Step 1/2`);
                 
                 const descriptionInput = new TextInputBuilder()
                     .setCustomId('description')
@@ -112,7 +113,7 @@ class GuideEditHandler {
                 // Create Step 2 modal with existing data
                 const modal2 = new ModalBuilder()
                     .setCustomId(`edit_guide_modal2_${className}_${guideType}_${spec}_${userId}`)
-                    .setTitle(`Edit ${className} ${guideType.toUpperCase()} Guide - Step 2/2`);
+                    .setTitle(`Edit ${createGuideTitle(className, guideType, spec)} - Step 2/2`);
                 
                 const addonsInput = new TextInputBuilder()
                     .setCustomId('addons')
