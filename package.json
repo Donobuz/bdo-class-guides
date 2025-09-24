@@ -1,0 +1,25 @@
+{
+  "name": "bdo-class-guides-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for Black Desert Online character class guides",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "deploy": "node deploy-commands.js",
+    "start-all": "npm run deploy && npm start"
+  },
+  "keywords": ["discord", "bot", "black-desert-online", "bdo", "gaming"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.9.0"
+  }
+}
