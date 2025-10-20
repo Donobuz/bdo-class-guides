@@ -76,14 +76,24 @@ Guides are organized by:
 - Type (PvP or PvE)
 - Spec (Awakening or Succession)
 
-Each guide contains:
+Guide content varies by type:
+
+**PvP Guides** include:
 - Description and playstyle overview
 - Pros and cons
 - Crystal setups (T1 capped, T2 capped, Uncapped)
-- Addons and artifacts
-- Lightstones
+- Addons, artifacts, and lightstones
 - Movement examples and combos
-- Video links for demonstrations
+- Demonstration videos
+
+**PvE Guides** include:
+- Description and playstyle overview
+- Pros and cons
+- Crystal setups for different content tiers
+- Addons, artifacts, and lightstones
+- Rotation explanations
+- Grinding spot recommendations
+- Demonstration videos
 
 ## File Structure
 
@@ -115,8 +125,8 @@ npm run deploy
 
 ## Contributing
 
-This is a personal project but feel free to fork it for your own community. If you find bugs or have suggestions, open an issue.
+If you find bugs or have suggestions, feel free to open an issue. This is primarily for my community but I'm open to feedback.
 
 ## License
 
-MIT - Do whatever you want with it.
+All rights reserved. This code is provided as-is for viewing and learning purposes only. You may not use, copy, modify, or distribute this software without explicit permission.
