@@ -4,6 +4,7 @@ const path = require('path');
 /**
  * Saves guide data to the correct file system structure
  * @param {Object} guideData - The guide data to save
+ * @returns {Promise<Object>} - Object with {success: boolean, wasUpdate: boolean}
  */
 async function saveGuideData(guideData) {
     const { className, guideType, spec, submittedById } = guideData;
@@ -15,16 +16,19 @@ async function saveGuideData(guideData) {
         // Create all directories
         await fs.mkdir(guidesDir, { recursive: true });
         
-        // Save the guide data as userId.json
+        // Check if guide already exists
         const guideFile = path.join(guidesDir, `${submittedById}.json`);
+        const exists = await fs.access(guideFile).then(() => true).catch(() => false);
+        
+        // Save the guide data as userId.json
         await fs.writeFile(guideFile, JSON.stringify(guideData, null, 2));
         
-        console.log(`✅ Guide saved successfully: ${guideFile}`);
-        return true;
+        console.log(`Guide ${exists ? 'updated' : 'created'} successfully: ${guideFile}`);
+        return { success: true, wasUpdate: exists };
         
     } catch (error) {
         console.error('Error saving guide data:', error);
-        return false;
+        return { success: false, wasUpdate: false };
     }
 }
 
@@ -60,17 +64,22 @@ async function loadAllGuides(className, guideType, spec) {
     const guides = [];
     
     try {
-        const fsSync = require('fs');
-        if (!fsSync.existsSync(guidesDir)) {
-            return guides;
+        // Check if directory exists
+        try {
+            await fs.access(guidesDir);
+        } catch {
+            return guides; // Directory doesn't exist
         }
         
-        const guideFiles = fsSync.readdirSync(guidesDir).filter(f => f.endsWith('.json'));
+        // Read all files in directory
+        const files = await fs.readdir(guidesDir);
+        const guideFiles = files.filter(f => f.endsWith('.json'));
         
+        // Load each guide file
         for (const guideFile of guideFiles) {
             const guideFilePath = path.join(guidesDir, guideFile);
             try {
-                const guideData = JSON.parse(fsSync.readFileSync(guideFilePath, 'utf8'));
+                const guideData = JSON.parse(await fs.readFile(guideFilePath, 'utf8'));
                 guides.push(guideData);
             } catch (error) {
                 console.error(`Error reading guide file ${guideFilePath}:`, error);
@@ -79,7 +88,7 @@ async function loadAllGuides(className, guideType, spec) {
         
         return guides;
     } catch (error) {
-        console.log(`Guide directory not found: ${guidesDir}`);
+        console.log(`Error loading guides from ${guidesDir}:`, error);
         return guides;
     }
 }

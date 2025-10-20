@@ -56,3 +56,12 @@ jspm_packages/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*-old.*
+*~
+
+# Server-specific settings (guild configurations)
+server-settings/

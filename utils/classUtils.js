@@ -64,10 +64,81 @@ function createGuideTitle(className, guideType, spec) {
     }
 }
 
+// Define the complete workflow structure for each guide type
+const GUIDE_WORKFLOWS = {
+    pvp: [
+        'description_pros_cons',            // Step 1
+        'large_small_scale_roles',          // Step 2
+        'addons_crystals',                  // Step 3
+        'artifacts_lightstones',            // Step 4
+        'movement_combat'                   // Step 5
+    ],
+    pve: [
+        'description_pros_cons_crystals',   // Step 1
+        'addons_movement_combos'            // Step 2
+    ]
+};
+
+// Human-readable step names
+const STEP_NAMES = {
+    description_pros_cons: 'Description & Overview',
+    large_small_scale_roles: 'PvP Roles',
+    addons_crystals: 'Addons & Crystals',
+    artifacts_lightstones: 'Artifacts & Lightstones',
+    movement_combat: 'Movement & Combat',
+    description_pros_cons_crystals: 'Description & Crystals',
+    addons_movement_combos: 'Addons & Movement'
+};
+
+/**
+ * Get the total number of steps for guide creation based on guide type
+ * @param {string} guideType - The guide type (pve/pvp)
+ * @returns {number} - Total number of steps (4 for PvP, 2 for PvE)
+ */
+function getTotalSteps(guideType) {
+    const workflow = GUIDE_WORKFLOWS[guideType.toLowerCase()];
+    if (!workflow) {
+        console.warn(`Unknown guide type: ${guideType}, defaulting to PvE workflow`);
+        return GUIDE_WORKFLOWS.pve.length;
+    }
+    
+    return workflow.length;
+}
+
+/**
+ * Get the workflow for a guide type
+ * @param {string} guideType - The guide type (pve/pvp)
+ * @returns {Array} - Array of workflow step names
+ */
+function getWorkflow(guideType) {
+    const workflow = GUIDE_WORKFLOWS[guideType.toLowerCase()];
+    if (!workflow) {
+        console.warn(`Unknown guide type: ${guideType}, defaulting to PvE workflow`);
+        return GUIDE_WORKFLOWS.pve;
+    }
+    return workflow;
+}
+
+/**
+ * Get the human-readable name for a step
+ * @param {string} guideType - The guide type (pve/pvp)
+ * @param {number} stepNumber - The step number (1-indexed)
+ * @returns {string} - Human-readable step name
+ */
+function getStepName(guideType, stepNumber) {
+    const workflow = getWorkflow(guideType);
+    const stepKey = workflow[stepNumber - 1]; // Convert to 0-indexed
+    return STEP_NAMES[stepKey] || `Step ${stepNumber}`;
+}
+
 module.exports = {
     isAscensionClass,
     getAvailableSpecs,
     getPrimarySpec,
     formatSpecForDisplay,
-    createGuideTitle
+    createGuideTitle,
+    getTotalSteps,
+    getWorkflow,
+    getStepName,
+    GUIDE_WORKFLOWS
 };

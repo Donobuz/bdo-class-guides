@@ -1,16 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder, StringSelectMenuBuilder, ActionRowBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { loadAllGuidesForClassType } = require('../utils/dataManager');
-const { hasGuidePermission } = require('../utils/permissions');
+const { hasGuidePermission, isSetupComplete, getPermissionErrorMessage } = require('../utils/permissions');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('guide-delete')
         .setDescription('Delete guides')
-        .addStringOption(option =>
-            option.setName('class')
-                .setDescription('Select a class')
-                .setRequired(true)
-                .setAutocomplete(true))
         .addStringOption(option =>
             option.setName('type')
                 .setDescription('Guide type')
@@ -18,16 +13,33 @@ module.exports = {
                 .addChoices(
                     { name: 'PvP', value: 'pvp' },
                     { name: 'PvE', value: 'pve' }
-                )),
+                ))
+        .addStringOption(option =>
+            option.setName('class')
+                .setDescription('Select a class')
+                .setRequired(true)
+                .setAutocomplete(true)),
 
     async execute(interaction) {
         const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
         
-        // Check permissions - either admin or has guide permission
-        if (!isAdmin && !hasGuidePermission(interaction.member)) {
+        // Check if setup is complete
+        const setupComplete = await isSetupComplete(interaction.guild.id);
+        if (!setupComplete && !isAdmin) {
+            const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
             return await interaction.reply({
-                content: '❌ You need Administrator permissions or guide creation permissions to delete guides.',
-                ephemeral: true
+                content: errorMsg,
+                flags: MessageFlags.Ephemeral
+            });
+        }
+        
+        // Check permissions - either admin or has guide permission
+        const hasPermission = await hasGuidePermission(interaction.member);
+        if (!isAdmin && !hasPermission) {
+            const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
+            return await interaction.reply({
+                content: errorMsg,
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -41,8 +53,8 @@ module.exports = {
 
             if (!guides || guides.length === 0) {
                 return await interaction.reply({
-                    content: `❌ No ${guideType.toUpperCase()} guides found for ${className}.`,
-                    ephemeral: true
+                    content: `No ${guideType.toUpperCase()} guides found for ${className}.`,
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -52,7 +64,7 @@ module.exports = {
                 const guidesByUser = {};
                 guides.forEach(guide => {
                     const guideUserId = guide.submittedById;
-                    const userName = guide.username || 'Unknown User';
+                    const userName = guide.submittedBy || guide.username || 'Unknown User';
                     const key = `${guideUserId}_${userName}`;
                     
                     if (!guidesByUser[key]) {
@@ -84,18 +96,24 @@ module.exports = {
                     .setPlaceholder('Select a user whose guides you want to delete')
                     .addOptions(options);
 
-                const row = new ActionRowBuilder().addComponents(selectMenu);
+                const cancelButton = new ButtonBuilder()
+                    .setCustomId('cancel_delete')
+                    .setLabel('Cancel')
+                    .setStyle(ButtonStyle.Secondary);
+
+                const menuRow = new ActionRowBuilder().addComponents(selectMenu);
+                const buttonRow = new ActionRowBuilder().addComponents(cancelButton);
 
                 const embed = new EmbedBuilder()
-                    .setTitle(`🗑️ Delete ${className.charAt(0).toUpperCase() + className.slice(1)} ${guideType.toUpperCase()} Guides`)
+                    .setTitle(`Delete ${className.charAt(0).toUpperCase() + className.slice(1)} ${guideType.toUpperCase()} Guides`)
                     .setDescription(`Found ${guides.length} guide(s) from ${options.length} user(s).\n\nSelect a user to view their guides for deletion.`)
                     .setColor(0xFF0000)
                     .setTimestamp();
 
                 await interaction.reply({
                     embeds: [embed],
-                    components: [row],
-                    ephemeral: true
+                    components: [menuRow, buttonRow],
+                    flags: MessageFlags.Ephemeral
                 });
             } else {
                 // Regular user - find their own guide (should only be one per class/type)
@@ -103,8 +121,8 @@ module.exports = {
                 
                 if (userGuides.length === 0) {
                     return interaction.reply({
-                        content: `❌ You don't have any ${className} ${guideType.toUpperCase()} guides to delete.`,
-                        ephemeral: true
+                        content: `You don't have any ${className} ${guideType.toUpperCase()} guides to delete.`,
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
@@ -116,8 +134,8 @@ module.exports = {
         } catch (error) {
             console.error('Error loading guides for deletion:', error);
             await interaction.reply({
-                content: '❌ An error occurred while loading guides.',
-                ephemeral: true
+                content: 'An error occurred while loading guides.',
+                flags: MessageFlags.Ephemeral
             });
         }
     }

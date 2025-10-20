@@ -15,26 +15,6 @@ module.exports = {
         // Add more ascension classes here as they are released
     ],
     
-    // Permission settings for guide submission
-    permissions: {
-        // Discord permissions that allow guide submission
-        allowedPermissions: ['Administrator', 'ManageMessages'],
-        
-        // Role names that allow guide submission (case-sensitive)
-        allowedRoles: [
-            'Guide Contributor',
-            'Moderator', 
-            'Admin',
-            'Guide Writer',
-            'Trusted Member'
-        ],
-        
-        // User IDs that are always allowed (bot owners, etc.)
-        allowedUsers: [
-            // Add Discord user IDs here like: '123456789012345678'
-        ]
-    },
-    
     colors: {
         primary: 0x2B2D31,
         success: 0x57F287,

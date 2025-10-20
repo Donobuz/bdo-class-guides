@@ -1,6 +1,6 @@
-const { SlashCommandBuilder, EmbedBuilder, StringSelectMenuBuilder, ActionRowBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, StringSelectMenuBuilder, ActionRowBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { loadAllGuidesForClassType } = require('../utils/dataManager');
-const { hasGuidePermission } = require('../utils/permissions');
+const { hasGuidePermission, isSetupComplete, getPermissionErrorMessage } = require('../utils/permissions');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,11 +23,23 @@ module.exports = {
     async execute(interaction) {
         const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
         
-        // Check permissions - either admin or has guide permission
-        if (!isAdmin && !hasGuidePermission(interaction.member)) {
+        // Check if setup is complete
+        const setupComplete = await isSetupComplete(interaction.guild.id);
+        if (!setupComplete && !isAdmin) {
+            const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
             return await interaction.reply({
-                content: '❌ You need Administrator permissions or guide creation permissions to edit guides.',
-                ephemeral: true
+                content: errorMsg,
+                flags: MessageFlags.Ephemeral
+            });
+        }
+        
+        // Check permissions - either admin or has guide permission
+        const hasPermission = await hasGuidePermission(interaction.member);
+        if (!isAdmin && !hasPermission) {
+            const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
+            return await interaction.reply({
+                content: errorMsg,
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -40,8 +52,8 @@ module.exports = {
         
         if (!allGuides || allGuides.length === 0) {
             return interaction.reply({
-                content: `❌ No guides found for ${className} ${guideType.toUpperCase()}.`,
-                ephemeral: true
+                content: `No guides found for ${className} ${guideType.toUpperCase()}.`,
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -78,7 +90,7 @@ module.exports = {
             await interaction.reply({
                 embeds: [embed],
                 components: [row],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         } else {
             // Regular user - find their own guide (should only be one per class/type)
@@ -86,8 +98,8 @@ module.exports = {
             
             if (userGuides.length === 0) {
                 return interaction.reply({
-                    content: `❌ You don't have any ${className} ${guideType.toUpperCase()} guides to edit.`,
-                    ephemeral: true
+                    content: `You don't have any ${className} ${guideType.toUpperCase()} guides to edit.`,
+                    flags: MessageFlags.Ephemeral
                 });
             }
 

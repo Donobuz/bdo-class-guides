@@ -1,8 +1,10 @@
-const { EmbedBuilder, StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { loadAllGuides } = require('../../utils/dataManager');
-const { createGuideTitle, formatSpecForDisplay } = require('../../utils/classUtils');
+const { createGuideTitle, formatSpecForDisplay, getTotalSteps, getStepName } = require('../../utils/classUtils');
+const { createSavedGuideEmbed, createGuideSelectionEmbed } = require('../../utils/embedBuilder');
 const config = require('../../config.js');
 
+// Updated: 2025-10-20 16:30
 class GuideViewHandler {
     static async handleGuideSelect(interaction) {
         const { customId } = interaction;
@@ -15,8 +17,8 @@ class GuideViewHandler {
                 
                 if (!allGuides || allGuides.length === 0) {
                     return await interaction.reply({
-                        content: 'No guides found for ${className} ${guideType.toUpperCase()}.',
-                        ephemeral: true
+                        content: `No guides found for ${className} ${guideType.toUpperCase()}.`,
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -48,23 +50,24 @@ class GuideViewHandler {
                 
                 const row = new ActionRowBuilder().addComponents(selectMenu);
                 
-                const embed = new EmbedBuilder()
-                    .setTitle(`📚 ${className} ${guideType.toUpperCase()} Guides`)
-                    .setDescription(`Select a spec below to view available guides.`)
-                    .setColor(config.colors[className.toLowerCase()] || config.colors.primary)
-                    .setFooter({ text: `Total: ${allGuides.length} guide(s)` });
+                const embeds = createGuideSelectionEmbed(
+                    `${className} ${guideType.toUpperCase()} Guides`,
+                    'Select a spec below to view available guides.',
+                    `Total: ${allGuides.length} guide(s)`,
+                    className
+                );
                 
                 await interaction.reply({
-                    embeds: [embed],
+                    embeds: embeds,
                     components: [row],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
                 
             } catch (error) {
                 console.error('Error loading guides:', error);
                 await interaction.reply({
                     content: 'An error occurred while loading guides.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
             return true;
@@ -86,13 +89,13 @@ class GuideViewHandler {
                 if (specGuides.length === 0) {
                     return await interaction.reply({
                         content: `No ${selectedSpec} guides found for ${className} ${guideType.toUpperCase()}.`,
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
                 // Create select menu for individual guides
                 const options = specGuides.map(guide => ({
-                    label: `${guide.username}'s ${selectedSpec} Guide`,
+                    label: `${guide.submittedBy || guide.username || 'Unknown'}'s ${selectedSpec} Guide`,
                     description: guide.description ? guide.description.substring(0, 100) + '...' : 'No description',
                     value: `${guide.submittedById}`
                 }));
@@ -104,23 +107,24 @@ class GuideViewHandler {
                 
                 const row = new ActionRowBuilder().addComponents(selectMenu);
                 
-                const embed = new EmbedBuilder()
-                    .setTitle(`📖 ${className} ${guideType.toUpperCase()} - ${formatSpecForDisplay(className, selectedSpec) || 'Guides'}`)
-                    .setDescription(`Select a guide below to view the full details.`)
-                    .setColor(config.colors[className.toLowerCase()] || config.colors.primary)
-                    .setFooter({ text: `${specGuides.length} ${selectedSpec} guide(s) available` });
+                const embeds = createGuideSelectionEmbed(
+                    `${className} ${guideType.toUpperCase()} - ${formatSpecForDisplay(className, selectedSpec) || 'Guides'}`,
+                    'Select a guide below to view the full details.',
+                    `${specGuides.length} ${selectedSpec} guide(s) available`,
+                    className
+                );
                 
                 await interaction.reply({
-                    embeds: [embed],
+                    embeds: embeds,
                     components: [row],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
                 
             } catch (error) {
                 console.error('Error loading spec guides:', error);
                 await interaction.reply({
                     content: 'An error occurred while loading guides.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
             return true;
@@ -142,104 +146,58 @@ class GuideViewHandler {
                 if (!guide) {
                     return await interaction.reply({
                         content: `Guide not found.`,
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
-                // Create the main guide embed
-                const embed = new EmbedBuilder()
-                    .setTitle(createGuideTitle(className, guideType, spec))
-                    .setDescription(guide.description)
-                    .setColor(config.colors[className.toLowerCase()] || config.colors.primary)
-                    .addFields(
-                        { name: 'Pros', value: guide.pros.length > 0 ? guide.pros.map(pro => `• ${pro}`).join('\n') : 'None listed', inline: true },
-                        { name: 'Cons', value: guide.cons.length > 0 ? guide.cons.map(con => `• ${con}`).join('\n') : 'None listed', inline: true },
-                        { name: '\u200B', value: '\u200B', inline: false }
-                    )
-                    .setFooter({ text: `Submitted by ${guide.username} | ${new Date(guide.submittedAt).toLocaleDateString()}` })
-                    .setTimestamp();
+                console.log('Displaying guide:', {
+                    className,
+                    guideType,
+                    spec,
+                    submittedBy: guide.submittedBy,
+                    username: guide.username,
+                    hasVideo: !!guide.movementVideo,
+                    videoUrl: guide.movementVideo,
+                    hasCrystals: !!guide.crystalsImgur,
+                    hasAddons: !!guide.addonsImgur
+                });
                 
-                if (guideType === 'pvp') {
-                    // PvP Guide Fields
+                // Use embedBuilder to create guide embeds
+                const embeds = createSavedGuideEmbed(guide);
+                
+                // Add quick edit buttons if this is the user's own guide
+                const components = [];
+                if (interaction.user.id === selectedUserId) {
+                    const totalSteps = getTotalSteps(guideType);
+                    const buttons = [];
                     
-                    // Addons & Crystals
-                    if (guide.addonsImgur) {
-                        embed.addFields({ name: 'Addons', value: `[View Addons Image](${guide.addonsImgur})`, inline: true });
-                        if (guide.addonReasoning) {
-                            embed.addFields({ name: '📝 Addon Reasoning', value: guide.addonReasoning.substring(0, 1024), inline: true });
-                        }
+                    // Create a button for each step (max 5 buttons per row)
+                    for (let step = 1; step <= totalSteps && step <= 5; step++) {
+                        const stepName = getStepName(guideType, step);
+                        buttons.push(
+                            new ButtonBuilder()
+                                .setCustomId(`quick_edit_step${step}_${className}_${guideType}_${spec}_${selectedUserId}`)
+                                .setLabel(`Edit: ${stepName}`)
+                                .setStyle(ButtonStyle.Secondary)
+                                );
                     }
                     
-                    if (guide.crystalsImgur) {
-                        embed.addFields({ name: 'Crystals', value: `[View Crystals Image](${guide.crystalsImgur})`, inline: true });
-                        if (guide.crystalInfo) {
-                            embed.addFields({ name: 'Crystal Info', value: guide.crystalInfo.substring(0, 1024), inline: true });
-                        }
-                    }
-                    
-                    embed.addFields({ name: '\u200B', value: '\u200B', inline: false });
-                    
-                    // Artifacts & Lightstones
-                    if (guide.artifactsImgur) {
-                        embed.addFields({ name: 'Artifacts', value: `[View Artifacts Image](${guide.artifactsImgur})`, inline: true });
-                    }
-                    
-                    if (guide.lightstoneImgur) {
-                        embed.addFields({ name: 'Lightstones', value: `[View Lightstone Set](${guide.lightstoneImgur})`, inline: true });
-                    }
-                    
-                    if (guide.reasoning) {
-                        embed.addFields({ name: 'Reasoning', value: guide.reasoning.substring(0, 1024), inline: false });
-                    }
-                    
-                    embed.addFields({ name: '\u200B', value: '\u200B', inline: false });
-                    
-                    // Movement & Combat
-                    if (guide.movementExample) {
-                        embed.addFields({ name: 'Movement', value: guide.movementExample.substring(0, 1024), inline: false });
-                        if (guide.movementVideo) {
-                            embed.addFields({ name: 'Movement Video', value: `[View Movement Video](${guide.movementVideo})`, inline: true });
-                        }
-                    }
-                    
-                    if (guide.pvpCombo) {
-                        embed.addFields({ name: 'PvP Combos', value: guide.pvpCombo.substring(0, 1024), inline: false });
-                        if (guide.combatVideo) {
-                            embed.addFields({ name: 'Combat Video', value: `[View Combat Video](${guide.combatVideo})`, inline: true });
-                        }
-                    }
-                    
-                } else {
-                    // PvE Guide Fields (original format)
-                    embed.addFields(
-                        { name: 'Crystals', value: guide.crystals?.length > 0 ? guide.crystals.map(crystal => `• ${crystal}`).join('\n') : 'None listed', inline: true },
-                        { name: 'Addons', value: guide.addons?.length > 0 ? guide.addons.map(addon => `• ${addon}`).join('\n') : 'None listed', inline: true },
-                        { name: '\u200B', value: '\u200B', inline: false },
-                        { name: 'Movement/Mobility', value: guide.movement || 'Not specified', inline: false }
-                    );
-                    
-                    // Add combos if they exist
-                    if (guide.combos && guide.combos.length > 0) {
-                        embed.addFields({ name: 'Combos', value: guide.combos.map(combo => `• ${combo}`).join('\n'), inline: false });
-                    }
-                    
-                    // Add YouTube links if they exist
-                    if (guide.ytLinks && guide.ytLinks.length > 0) {
-                        const ytLinksText = guide.ytLinks.map(link => `• ${link}`).join('\n');
-                        embed.addFields({ name: 'YouTube Links', value: ytLinksText, inline: false });
+                    if (buttons.length > 0) {
+                        components.push(new ActionRowBuilder().addComponents(buttons));
                     }
                 }
                 
                 await interaction.reply({
-                    embeds: [embed],
-                    ephemeral: true
+                    embeds: embeds,
+                    components,
+                    flags: MessageFlags.Ephemeral
                 });
                 
             } catch (error) {
                 console.error('Error displaying guide:', error);
                 await interaction.reply({
-                    content: '❌ An error occurred while displaying the guide.',
-                    ephemeral: true
+                    content: 'An error occurred while displaying the guide.',
+                    flags: MessageFlags.Ephemeral
                 });
             }
             return true;

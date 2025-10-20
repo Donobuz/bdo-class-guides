@@ -1,4 +1,4 @@
-const { Client, Collection, Events, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -20,7 +20,7 @@ const BDO_CLASSES = [
     'Corsair', 'Drakania', 'Scholar', 'Wukong', 'Deadeye'
 ];
 
-const GUIDE_COMMANDS_WITH_AUTOCOMPLETE = ['guide', 'create-guide', 'guide-delete', 'guide-edit'];
+const GUIDE_COMMANDS_WITH_AUTOCOMPLETE = ['guide', 'guide-create', 'guide-delete', 'guide-edit'];
 const COMMANDS_REQUIRING_EXISTING_GUIDES = ['guide', 'guide-delete', 'guide-edit'];
 
 /**
@@ -110,66 +110,24 @@ async function handleSpecSelectionButton(interaction) {
     const userId = interaction.user.id;
     const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
     
-    // Check if regular member already has a guide for this class/type/spec
-    if (!isAdmin) {
-        try {
-            const existingGuides = await loadAllGuidesForClassType(className, guideType);
-            const userGuide = existingGuides.find(guide => 
-                guide.submittedById === userId && guide.spec === spec
-            );
-            
-            if (userGuide) {
-                await interaction.reply({
-                    content: `❌ You already have a ${className} ${guideType.toUpperCase()} ${spec.charAt(0).toUpperCase() + spec.slice(1)} guide. Regular members can only have one guide per class/type/spec combination.`,
-                    ephemeral: true
-                });
-                return true;
-            }
-        } catch (error) {
-            console.error('Error checking existing guide for spec:', error);
-            // Continue with creation if there's an error checking (fail gracefully)
+    // Check if user already has a guide for this class/type/spec
+    try {
+        const existingGuides = await loadAllGuidesForClassType(className, guideType);
+        const userGuide = existingGuides.find(guide => 
+            guide.submittedById === userId && guide.spec === spec
+        );
+        
+        if (userGuide) {
+            // Redirect to edit mode
+            return await GuideEditHandler.startEditing(interaction, className, guideType, spec, userId);
         }
+    } catch (error) {
+        console.error('Error checking existing guide for spec:', error);
+        // Continue with creation if there's an error checking (fail gracefully)
     }
     
-    // Show guide creation modal
-    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-    
-    const totalSteps = guideType === 'pvp' ? '4' : '2';
-    const modal = new ModalBuilder()
-        .setCustomId(`submit_guide_step1_${className}_${guideType}_${spec}`)
-        .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${guideType.toUpperCase()} Guide - Step 1/${totalSteps}`);
-
-    const descriptionInput = new TextInputBuilder()
-        .setCustomId('description')
-        .setLabel('Guide Description')
-        .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Describe your build and playstyle...')
-        .setRequired(true)
-        .setMaxLength(1000);
-
-    const prosInput = new TextInputBuilder()
-        .setCustomId('pros')
-        .setLabel('Pros (one per line)')
-        .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('High damage\nGood mobility\nStrong in 1v1...')
-        .setRequired(true)
-        .setMaxLength(500);
-
-    const consInput = new TextInputBuilder()
-        .setCustomId('cons')
-        .setLabel('Cons (one per line)')
-        .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Resource management\nVulnerable to grabs\nHigh skill requirement...')
-        .setRequired(true)
-        .setMaxLength(500);
-
-    modal.addComponents(
-        new ActionRowBuilder().addComponents(descriptionInput),
-        new ActionRowBuilder().addComponents(prosInput),
-        new ActionRowBuilder().addComponents(consInput)
-    );
-
-    await interaction.showModal(modal);
+    // No existing guide - show guide creation modal using dynamic handler
+    await GuideCreateHandler.showStepModal(interaction, className, guideType, spec, 1);
     return true;
 }
 
@@ -185,7 +143,7 @@ async function handleCancelDelete(interaction) {
     
     const { EmbedBuilder } = require('discord.js');
     const embed = new EmbedBuilder()
-        .setTitle('❌ Deletion Cancelled')
+        .setTitle('Deletion Cancelled')
         .setDescription('No guides were deleted.')
         .setColor(0x808080)
         .setTimestamp();
@@ -209,7 +167,7 @@ async function handleCommandError(interaction, error) {
     try {
         const errorMessage = {
             content: 'There was an error while executing this command!',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         };
 
         if (!interaction.replied && !interaction.deferred) {
@@ -292,6 +250,7 @@ client.on(Events.InteractionCreate, async interaction => {
         if (!handled) handled = await GuideViewHandler.handleGuideView(interaction);
         if (!handled) handled = await GuideEditHandler.handleEditUserSelect(interaction);
         if (!handled) handled = await GuideDeleteHandler.handleDeleteUserSelect(interaction);
+        if (!handled) handled = await GuideDeleteHandler.handleDeleteGuideSelect(interaction);
         
         if (!handled) {
             console.log(`Unhandled string select menu: ${customId}`);
@@ -306,12 +265,21 @@ client.on(Events.InteractionCreate, async interaction => {
         if (!handled) handled = await handleSpecSelectionButton(interaction);
         if (!handled) handled = await handleCancelDelete(interaction);
         
-        // Try handler methods
-        if (!handled) handled = await GuideCreateHandler.handleContinueStep2(interaction);
-        if (!handled) handled = await GuideCreateHandler.handleContinueStep3(interaction);
-        if (!handled) handled = await GuideCreateHandler.handleContinueStep4(interaction);
+        // Try handler methods - Both use generic handlers now (handles all steps dynamically)
+        if (!handled) handled = await GuideCreateHandler.handleContinueStep(interaction);
+        if (!handled) handled = await GuideCreateHandler.handleRedoStep(interaction);
+        if (!handled) handled = await GuideCreateHandler.handleCancel(interaction);
+        
+        if (!handled) handled = await GuideEditHandler.handleContinueStep(interaction);
+        if (!handled) handled = await GuideEditHandler.handleRedoStep(interaction);
+        if (!handled) handled = await GuideEditHandler.handleCancelEdit(interaction);
+        if (!handled) handled = await GuideEditHandler.handleQuickEdit(interaction);
+        
+        // Delete handlers
         if (!handled) handled = await GuideDeleteHandler.handleConfirmDelete(interaction);
         if (!handled) handled = await GuideDeleteHandler.handleDeleteAllUserGuides(interaction);
+        if (!handled) handled = await GuideDeleteHandler.handleGoBackToGuideSelect(interaction);
+        if (!handled) handled = await GuideDeleteHandler.handleGoBackToUserSelect(interaction);
         
         if (!handled) {
             console.log(`Unhandled button interaction: ${interaction.customId}`);
@@ -323,13 +291,9 @@ client.on(Events.InteractionCreate, async interaction => {
         const { customId } = interaction;
         let handled = false;
         
-        // Try each handler
-        if (!handled) handled = await GuideEditHandler.handleEditModal1(interaction);
-        if (!handled) handled = await GuideEditHandler.handleEditModal2(interaction);
-        if (!handled) handled = await GuideCreateHandler.handleStep1Submission(interaction);
-        if (!handled) handled = await GuideCreateHandler.handleStep2Submission(interaction);
-        if (!handled) handled = await GuideCreateHandler.handleStep3Submission(interaction);
-        if (!handled) handled = await GuideCreateHandler.handleStep4Submission(interaction);
+        // Try each handler - Both use generic handlers now (handles all steps dynamically)
+        if (!handled) handled = await GuideEditHandler.handleStepSubmission(interaction);
+        if (!handled) handled = await GuideCreateHandler.handleStepSubmission(interaction);
         if (!handled) handled = await GuideCreateHandler.handleLegacySubmission(interaction);
         
         if (!handled) {

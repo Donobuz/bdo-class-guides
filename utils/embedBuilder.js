@@ -16,111 +16,207 @@ function createNoGuideEmbed(className, guideType) {
 
 /**
  * Creates an embed for displaying saved guide data
+ * Now returns an array: [mainEmbed, ...imageEmbeds]
  */
 function createSavedGuideEmbed(guideData) {
-    const { className, guideType, spec, description, pros, cons, movement, combos, addons, crystals, ytLinks, username } = guideData;
+    const { className, guideType, spec, description, pros, cons, crystalsImgur, crystalsT1Capped, crystalsT2Capped, crystalsUncapped, addonsImgur, artifactsImgur, lightstoneImgur, reasoning, pvpCombo, combatVideo, movementVideo, movementExample, pveCombo, submittedBy, username, createdAt } = guideData;
     
-    // Helper function to validate URLs
-    const isValidUrl = (string) => {
-        try {
-            new URL(string);
-            return true;
-        } catch (_) {
-            return false;
-        }
-    };
-    
-    const embed = new EmbedBuilder()
+    const mainEmbed = new EmbedBuilder()
         .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${spec.charAt(0).toUpperCase() + spec.slice(1)} - ${guideType.toUpperCase()}`)
-        .setDescription(description)
+        .setDescription(description || 'No description provided')
         .setColor(config.colors[className] || config.colors.primary)
-        .setFooter({ 
-            text: `Guide by ${username}` 
-        })
-        .setTimestamp();
+        .setTimestamp(createdAt ? new Date(createdAt) : new Date());
 
-    // Add pros and cons if they exist
+    // Add pros and cons side by side
     if (pros && pros.length > 0) {
-        embed.addFields({
-            name: '✅ Pros',
-            value: Array.isArray(pros) ? pros.join('\n') : pros,
+        mainEmbed.addFields({
+            name: 'Pros',
+            value: Array.isArray(pros) ? pros.map(pro => `• ${pro}`).join('\n') : pros,
             inline: true
         });
+    } else {
+        mainEmbed.addFields({ name: 'Pros', value: 'None listed', inline: true });
     }
     
     if (cons && cons.length > 0) {
-        embed.addFields({
-            name: '❌ Cons',
-            value: Array.isArray(cons) ? cons.join('\n') : cons,
+        mainEmbed.addFields({
+            name: 'Cons',
+            value: Array.isArray(cons) ? cons.map(con => `• ${con}`).join('\n') : cons,
             inline: true
         });
+    } else {
+        mainEmbed.addFields({ name: 'Cons', value: 'None listed', inline: true });
     }
 
-    // Add movement and combos if they exist
-    if (movement) {
-        embed.addFields({
-            name: '🏃 Movement & Mobility',
-            value: movement,
-            inline: false
-        });
-    }
-    
-    if (combos) {
-        embed.addFields({
-            name: '⚔️ Combos & Rotations',
-            value: Array.isArray(combos) ? combos.join('\n') : combos,
+    // Add separator
+    mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
+
+    // Add reasoning if present (for artifacts/lightstones)
+    if (reasoning) {
+        mainEmbed.addFields({
+            name: 'Build Reasoning',
+            value: reasoning,
             inline: false
         });
     }
 
-    // Handle addons
-    if (addons && addons.length > 0) {
-        const addonImage = Array.isArray(addons) ? addons[0] : addons;
-        
-        if (isValidUrl(addonImage)) {
-            embed.addFields({
-                name: '🔮 Add-ons',
-                value: `[View Add-ons](${addonImage})`,
-                inline: true
+    // PvP specific fields
+    if (guideType === 'pvp') {
+        if (movementExample) {
+            mainEmbed.addFields({
+                name: 'Movement Pattern',
+                value: movementExample,
+                inline: false
             });
-        } else {
-            embed.addFields({
-                name: '🔮 Add-ons',
-                value: Array.isArray(addons) ? addons.join('\n') : addons,
-                inline: true
+        }
+
+        if (pvpCombo) {
+            mainEmbed.addFields({
+                name: 'PvP Combos',
+                value: pvpCombo,
+                inline: false
             });
         }
     }
 
-    // Handle crystals
-    if (crystals && crystals.length > 0) {
-        const crystalImage = Array.isArray(crystals) ? crystals[0] : crystals;
-        
-        if (isValidUrl(crystalImage)) {
-            embed.addFields({
-                name: '💎 Crystals',
-                value: `[View Crystals](${crystalImage})`,
-                inline: true
+    // PvE specific fields
+    if (guideType === 'pve') {
+        if (movementExample) {
+            mainEmbed.addFields({
+                name: 'Movement Pattern',
+                value: movementExample,
+                inline: false
             });
-        } else {
-            embed.addFields({
-                name: '💎 Crystals',
-                value: Array.isArray(crystals) ? crystals.join('\n') : crystals,
-                inline: true
+        }
+
+        if (pveCombo) {
+            mainEmbed.addFields({
+                name: 'Rotation/Combo',
+                value: pveCombo,
+                inline: false
             });
         }
     }
 
-    // Handle YouTube links
-    if (ytLinks && ytLinks.length > 0) {
-        embed.addFields({
-            name: '� YouTube Links',
-            value: Array.isArray(ytLinks) ? ytLinks.join('\n') : ytLinks,
-            inline: false
-        });
+    // Set footer with submitter info
+    const submitterName = submittedBy || username || 'Unknown';
+    mainEmbed.setFooter({ text: `Submitted by ${submitterName}` });
+
+    // Create array to hold all embeds
+    const embeds = [mainEmbed];
+
+    // Add Crystal Tiers as separate embeds (for PvP guides)
+    if (crystalsT1Capped) {
+        const crystalsT1Embed = new EmbedBuilder()
+            .setTitle('Crystals - T1 Capped')
+            .setImage(crystalsT1Capped)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(crystalsT1Embed);
     }
 
-    return embed;
+    if (crystalsT2Capped) {
+        const crystalsT2Embed = new EmbedBuilder()
+            .setTitle('Crystals - T2 Capped')
+            .setImage(crystalsT2Capped)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(crystalsT2Embed);
+    }
+
+    if (crystalsUncapped) {
+        const crystalsUncappedEmbed = new EmbedBuilder()
+            .setTitle('Crystals - Uncapped')
+            .setImage(crystalsUncapped)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(crystalsUncappedEmbed);
+    }
+
+    // Add single Crystals image (for PvE guides)
+    if (crystalsImgur) {
+        const crystalsEmbed = new EmbedBuilder()
+            .setTitle('Crystals')
+            .setImage(crystalsImgur)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(crystalsEmbed);
+    }
+
+    // Add Addons image as a separate embed
+    if (addonsImgur) {
+        const addonsEmbed = new EmbedBuilder()
+            .setTitle('Addons')
+            .setImage(addonsImgur)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(addonsEmbed);
+    }
+
+    // Add Artifacts image as a separate embed
+    if (artifactsImgur) {
+        const artifactsEmbed = new EmbedBuilder()
+            .setTitle('Artifacts')
+            .setImage(artifactsImgur)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(artifactsEmbed);
+    }
+
+    // Add Lightstone image as a separate embed
+    if (lightstoneImgur) {
+        const lightstoneEmbed = new EmbedBuilder()
+            .setTitle('Lightstone Set')
+            .setImage(lightstoneImgur)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(lightstoneEmbed);
+    }
+
+    // Add movement video as embed with YouTube thumbnail
+    if (movementVideo) {
+        // Check if it's a YouTube link
+        const youtubeRegex = /(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/;
+        const match = movementVideo.match(youtubeRegex);
+
+        if (match) {
+            const videoId = match[2];
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+            const videoEmbed = new EmbedBuilder()
+                .setTitle('Gameplay Video')
+                .setURL(movementVideo)
+                .setImage(thumbnailUrl)
+                .setDescription(`[Click here to watch on YouTube](${movementVideo})`)
+                .setColor(config.colors[className] || config.colors.primary);
+            embeds.push(videoEmbed);
+        } else {
+            // Not a YouTube link, just add as a field in main embed
+            mainEmbed.addFields({
+                name: 'Gameplay Video',
+                value: `[Watch Video](${movementVideo})`,
+                inline: false
+            });
+        }
+    }
+
+    // Add combat video for PvP (separate from movement video)
+    if (combatVideo && guideType === 'pvp') {
+        const youtubeRegex = /(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/;
+        const match = combatVideo.match(youtubeRegex);
+
+        if (match) {
+            const videoId = match[2];
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+            const videoEmbed = new EmbedBuilder()
+                .setTitle('Combat Video')
+                .setURL(combatVideo)
+                .setImage(thumbnailUrl)
+                .setDescription(`[Click here to watch on YouTube](${combatVideo})`)
+                .setColor(config.colors[className] || config.colors.primary);
+            embeds.push(videoEmbed);
+        } else {
+            mainEmbed.addFields({
+                name: 'Combat Video',
+                value: `[Watch Video](${combatVideo})`,
+                inline: false
+            });
+        }
+    }
+
+    return embeds;
 }
 
 /**
@@ -143,7 +239,7 @@ function createSubmittedGuideEmbed(guideData) {
     // Add pros and cons
     if (pros && pros.length > 0) {
         embed.addFields({
-            name: '✅ Pros',
+            name: 'Pros',
             value: Array.isArray(pros) ? pros.join('\n') : pros,
             inline: true
         });
@@ -151,7 +247,7 @@ function createSubmittedGuideEmbed(guideData) {
     
     if (cons && cons.length > 0) {
         embed.addFields({
-            name: '❌ Cons',
+            name: 'Cons',
             value: Array.isArray(cons) ? cons.join('\n') : cons,
             inline: true
         });
@@ -160,7 +256,7 @@ function createSubmittedGuideEmbed(guideData) {
     // Add movement and combos
     if (movement) {
         embed.addFields({
-            name: '🏃 Movement & Mobility',
+            name: 'Movement & Mobility',
             value: movement,
             inline: false
         });
@@ -168,7 +264,7 @@ function createSubmittedGuideEmbed(guideData) {
     
     if (combos) {
         embed.addFields({
-            name: '⚔️ Combos & Rotations',
+            name: 'Combos & Rotations',
             value: combos,
             inline: false
         });
@@ -182,7 +278,7 @@ function createSubmittedGuideEmbed(guideData) {
         }
         
         embed.addFields({
-            name: '🔮 Add-ons',
+            name: 'Add-ons',
             value: addonsValue,
             inline: true
         });
@@ -190,7 +286,7 @@ function createSubmittedGuideEmbed(guideData) {
 
     if (crystalsImage) {
         embed.addFields({
-            name: '💎 Crystals',  
+            name: 'Crystals',  
             value: 'Image will be processed and attached',
             inline: true
         });
@@ -222,9 +318,109 @@ function createGuideSelectionEmbed(className, guideType) {
  */
 function createErrorEmbed(title, description) {
     return new EmbedBuilder()
-        .setTitle(`❌ ${title}`)
+        .setTitle(`${title}`)
         .setDescription(description)
         .setColor(config.colors.error)
+        .setTimestamp();
+}
+
+/**
+ * Creates a success embed
+ */
+function createSuccessEmbed(title, description) {
+    return new EmbedBuilder()
+        .setTitle(title)
+        .setDescription(description)
+        .setColor(config.colors.success || 0x00FF00)
+        .setTimestamp();
+}
+
+/**
+ * Creates a progress saved embed for guide creation/editing
+ */
+function createProgressEmbed(stepName, previewText, color = config.colors.primary) {
+    return new EmbedBuilder()
+        .setTitle(`Step Progress: ${stepName}`)
+        .setDescription(`Progress saved!\n${previewText}`)
+        .setColor(color)
+        .setTimestamp();
+}
+
+/**
+ * Creates a confirmation embed for deletions
+ */
+function createConfirmDeleteEmbed(guideInfo) {
+    const { className, guideType, spec, description, submittedBy } = guideInfo;
+    
+    return new EmbedBuilder()
+        .setTitle('Confirm Guide Deletion')
+        .setDescription('Are you sure you want to delete this guide?')
+        .addFields(
+            { name: 'User', value: submittedBy || 'Unknown', inline: true },
+            { name: 'Class', value: className.charAt(0).toUpperCase() + className.slice(1), inline: true },
+            { name: 'Type', value: guideType.toUpperCase(), inline: true },
+            { name: 'Spec', value: spec.charAt(0).toUpperCase() + spec.slice(1), inline: true },
+            { name: 'Description', value: description ? (description.substring(0, 200) + (description.length > 200 ? '...' : '')) : 'No description', inline: false }
+        )
+        .setColor(config.colors.error)
+        .setFooter({ text: 'This action cannot be undone!' });
+}
+
+/**
+ * Creates embed for list of guides (for selection)
+ */
+function createGuideListEmbed(title, description, className, count) {
+    return new EmbedBuilder()
+        .setTitle(title)
+        .setDescription(description)
+        .setColor(config.colors[className] || config.colors.primary)
+        .setFooter({ text: `${count} guide(s) available` })
+        .setTimestamp();
+}
+
+/**
+ * Creates embed for deletion success
+ */
+function createDeleteSuccessEmbed(className, guideType, spec, customMessage = null) {
+    const specDisplay = spec ? spec.charAt(0).toUpperCase() + spec.slice(1) : '';
+    const description = customMessage || `Deleted ${className} ${specDisplay} ${guideType.toUpperCase()} guide.`;
+    
+    return new EmbedBuilder()
+        .setTitle('Guide Deleted Successfully')
+        .setDescription(description)
+        .setColor(config.colors.success || 0x00FF00)
+        .setTimestamp();
+}
+
+/**
+ * Creates embed for guide creation success
+ */
+function createGuideCreatedEmbed(className, guideType, spec) {
+    return new EmbedBuilder()
+        .setTitle('Guide Created Successfully!')
+        .setDescription(`Your ${className} ${spec} ${guideType.toUpperCase()} guide has been created and is now available for others to view!`)
+        .addFields(
+            { name: 'Class', value: className.charAt(0).toUpperCase() + className.slice(1), inline: true },
+            { name: 'Spec', value: spec.charAt(0).toUpperCase() + spec.slice(1), inline: true },
+            { name: 'Type', value: guideType.toUpperCase(), inline: true }
+        )
+        .setColor(config.colors.success || 0x00FF00)
+        .setTimestamp();
+}
+
+/**
+ * Creates embed for guide update success
+ */
+function createGuideUpdatedEmbed(className, guideType, spec) {
+    return new EmbedBuilder()
+        .setTitle('Guide Updated Successfully!')
+        .setDescription(`Your ${className} ${spec} ${guideType.toUpperCase()} guide has been updated!`)
+        .addFields(
+            { name: 'Class', value: className.charAt(0).toUpperCase() + className.slice(1), inline: true },
+            { name: 'Spec', value: spec.charAt(0).toUpperCase() + spec.slice(1), inline: true },
+            { name: 'Type', value: guideType.toUpperCase(), inline: true }
+        )
+        .setColor(config.colors.success || 0x00FF00)
         .setTimestamp();
 }
 
@@ -233,5 +429,12 @@ module.exports = {
     createSavedGuideEmbed,
     createSubmittedGuideEmbed,
     createGuideSelectionEmbed,
-    createErrorEmbed
+    createErrorEmbed,
+    createSuccessEmbed,
+    createProgressEmbed,
+    createConfirmDeleteEmbed,
+    createGuideListEmbed,
+    createDeleteSuccessEmbed,
+    createGuideCreatedEmbed,
+    createGuideUpdatedEmbed
 };
