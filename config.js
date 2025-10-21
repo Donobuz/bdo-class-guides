@@ -4,6 +4,7 @@ module.exports = {
     token: process.env.DISCORD_TOKEN,
     clientId: process.env.CLIENT_ID,
     guildId: process.env.GUILD_ID,
+    mongodbUri: process.env.MONGODB_URI,
     
     // Classes that use Ascension instead of Succession
     ascensionClasses: [

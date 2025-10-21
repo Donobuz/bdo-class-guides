@@ -1,30 +1,47 @@
-const fs = require('fs').promises;
-const path = require('path');
+const { getDatabase } = require('./database');
 
 /**
- * Saves guide data to the correct file system structure
+ * Saves guide data to MongoDB
  * @param {Object} guideData - The guide data to save
  * @returns {Promise<Object>} - Object with {success: boolean, wasUpdate: boolean}
  */
 async function saveGuideData(guideData) {
     const { className, guideType, spec, submittedById } = guideData;
     
-    // Create the directory structure: guides/className/guideType/spec/
-    const guidesDir = path.join(__dirname, '..', 'guides', className.toLowerCase(), guideType, spec);
-    
     try {
-        // Create all directories
-        await fs.mkdir(guidesDir, { recursive: true });
+        const db = getDatabase();
+        const guidesCollection = db.collection('guides');
         
         // Check if guide already exists
-        const guideFile = path.join(guidesDir, `${submittedById}.json`);
-        const exists = await fs.access(guideFile).then(() => true).catch(() => false);
+        const existingGuide = await guidesCollection.findOne({
+            className: className.toLowerCase(),
+            guideType,
+            spec,
+            submittedById
+        });
         
-        // Save the guide data as userId.json
-        await fs.writeFile(guideFile, JSON.stringify(guideData, null, 2));
+        const wasUpdate = !!existingGuide;
         
-        console.log(`Guide ${exists ? 'updated' : 'created'} successfully: ${guideFile}`);
-        return { success: true, wasUpdate: exists };
+        // Upsert the guide (update if exists, insert if not)
+        await guidesCollection.updateOne(
+            {
+                className: className.toLowerCase(),
+                guideType,
+                spec,
+                submittedById
+            },
+            {
+                $set: {
+                    ...guideData,
+                    className: className.toLowerCase(),
+                    updatedAt: new Date().toISOString()
+                }
+            },
+            { upsert: true }
+        );
+        
+        console.log(`Guide ${wasUpdate ? 'updated' : 'created'} successfully: ${className}/${guideType}/${spec}/${submittedById}`);
+        return { success: true, wasUpdate };
         
     } catch (error) {
         console.error('Error saving guide data:', error);
@@ -39,17 +56,20 @@ async function saveGuideData(guideData) {
  * @returns {Array} - Array of guide data objects from both succession and awakening
  */
 async function loadAllGuidesForClassType(className, guideType) {
-    const guides = [];
-    
-    // Load succession guides
-    const successionGuides = await loadAllGuides(className, guideType, 'succession');
-    guides.push(...successionGuides);
-    
-    // Load awakening guides
-    const awakeningGuides = await loadAllGuides(className, guideType, 'awakening');
-    guides.push(...awakeningGuides);
-    
-    return guides;
+    try {
+        const db = getDatabase();
+        const guidesCollection = db.collection('guides');
+        
+        const guides = await guidesCollection.find({
+            className: className.toLowerCase(),
+            guideType
+        }).toArray();
+        
+        return guides;
+    } catch (error) {
+        console.error('Error loading guides:', error);
+        return [];
+    }
 }
 
 /**
@@ -60,36 +80,20 @@ async function loadAllGuidesForClassType(className, guideType) {
  * @returns {Array} - Array of guide data objects
  */
 async function loadAllGuides(className, guideType, spec) {
-    const guidesDir = path.join(__dirname, '..', 'guides', className.toLowerCase(), guideType, spec);
-    const guides = [];
-    
     try {
-        // Check if directory exists
-        try {
-            await fs.access(guidesDir);
-        } catch {
-            return guides; // Directory doesn't exist
-        }
+        const db = getDatabase();
+        const guidesCollection = db.collection('guides');
         
-        // Read all files in directory
-        const files = await fs.readdir(guidesDir);
-        const guideFiles = files.filter(f => f.endsWith('.json'));
-        
-        // Load each guide file
-        for (const guideFile of guideFiles) {
-            const guideFilePath = path.join(guidesDir, guideFile);
-            try {
-                const guideData = JSON.parse(await fs.readFile(guideFilePath, 'utf8'));
-                guides.push(guideData);
-            } catch (error) {
-                console.error(`Error reading guide file ${guideFilePath}:`, error);
-            }
-        }
+        const guides = await guidesCollection.find({
+            className: className.toLowerCase(),
+            guideType,
+            spec
+        }).toArray();
         
         return guides;
     } catch (error) {
-        // Directory doesn't exist yet - return empty array
-        return guides;
+        console.error('Error loading guides:', error);
+        return [];
     }
 }
 
@@ -102,20 +106,26 @@ async function loadAllGuides(className, guideType, spec) {
  * @returns {Object|null} - Guide data or null if not found
  */
 async function loadGuideByDiscordId(className, guideType, spec, discordId) {
-    const guideFilePath = path.join(__dirname, '..', 'guides', className.toLowerCase(), guideType, spec, `${discordId}.json`);
-    
     try {
-        const data = await fs.readFile(guideFilePath, 'utf8');
-        const guide = JSON.parse(data);
+        const db = getDatabase();
+        const guidesCollection = db.collection('guides');
+        
+        const guide = await guidesCollection.findOne({
+            className: className.toLowerCase(),
+            guideType,
+            spec,
+            submittedById: discordId
+        });
+        
         return guide;
     } catch (error) {
-        // Guide file doesn't exist
+        console.error('Error loading guide:', error);
         return null;
     }
 }
 
 /**
- * Deletes a guide file
+ * Deletes a guide
  * @param {string} className - Class name
  * @param {string} guideType - Guide type (pvp/pve)
  * @param {string} spec - Spec (succession/awakening)
@@ -123,17 +133,24 @@ async function loadGuideByDiscordId(className, guideType, spec, discordId) {
  * @returns {Promise<boolean>} - True if deleted, false if not found
  */
 async function deleteGuide(className, guideType, spec, discordId) {
-    const guideFilePath = path.join(__dirname, '..', 'guides', className.toLowerCase(), guideType, spec, `${discordId}.json`);
-    
     try {
-        await fs.unlink(guideFilePath);
-        console.log(`Guide deleted successfully: ${guideFilePath}`);
-        return true;
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            // File doesn't exist
-            return false;
+        const db = getDatabase();
+        const guidesCollection = db.collection('guides');
+        
+        const result = await guidesCollection.deleteOne({
+            className: className.toLowerCase(),
+            guideType,
+            spec,
+            submittedById: discordId
+        });
+        
+        if (result.deletedCount > 0) {
+            console.log(`Guide deleted successfully: ${className}/${guideType}/${spec}/${discordId}`);
+            return true;
         }
+        
+        return false;
+    } catch (error) {
         console.error(`Error deleting guide: ${error}`);
         throw error;
     }

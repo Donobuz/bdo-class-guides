@@ -1,28 +1,4 @@
-const fs = require('fs').promises;
-const path = require('path');
-
-const SETTINGS_DIR = path.join(__dirname, '../server-settings');
-const SETTINGS_FILE = 'settings.json';
-
-/**
- * Ensure settings directory exists
- */
-async function ensureSettingsDir() {
-    try {
-        await fs.access(SETTINGS_DIR);
-    } catch {
-        await fs.mkdir(SETTINGS_DIR, { recursive: true });
-    }
-}
-
-/**
- * Get settings file path for a guild
- * @param {string} guildId - Discord guild ID
- * @returns {string} - Path to settings file
- */
-function getSettingsPath(guildId) {
-    return path.join(SETTINGS_DIR, `${guildId}.json`);
-}
+const { getDatabase } = require('./database');
 
 /**
  * Load server settings for a guild
@@ -30,14 +6,20 @@ function getSettingsPath(guildId) {
  * @returns {object} - Server settings object
  */
 async function loadServerSettings(guildId) {
-    await ensureSettingsDir();
-    const settingsPath = getSettingsPath(guildId);
-    
     try {
-        const data = await fs.readFile(settingsPath, 'utf8');
-        return JSON.parse(data);
+        const db = getDatabase();
+        const serverSettingsCollection = db.collection('serverSettings');
+        
+        const settings = await serverSettingsCollection.findOne({ guildId });
+        
+        if (settings) {
+            return settings;
+        }
+        
+        // Return default settings if not found
+        return getDefaultSettings();
     } catch (error) {
-        // Return default settings if file doesn't exist
+        console.error('Error loading server settings:', error);
         return getDefaultSettings();
     }
 }
@@ -48,14 +30,19 @@ async function loadServerSettings(guildId) {
  * @param {object} settings - Settings object to save
  */
 async function saveServerSettings(guildId, settings) {
-    await ensureSettingsDir();
-    const settingsPath = getSettingsPath(guildId);
-    
-    await fs.writeFile(
-        settingsPath,
-        JSON.stringify(settings, null, 2),
-        'utf8'
-    );
+    try {
+        const db = getDatabase();
+        const serverSettingsCollection = db.collection('serverSettings');
+        
+        await serverSettingsCollection.updateOne(
+            { guildId },
+            { $set: { ...settings, guildId, updatedAt: new Date().toISOString() } },
+            { upsert: true }
+        );
+    } catch (error) {
+        console.error('Error saving server settings:', error);
+        throw error;
+    }
 }
 
 /**

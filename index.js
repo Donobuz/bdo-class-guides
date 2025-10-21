@@ -5,6 +5,7 @@ const path = require('path');
 // Import configuration and utilities
 const config = require('./config.js');
 const { loadAllGuidesForClassType } = require('./utils/dataManager');
+const { connectToDatabase } = require('./utils/database');
 
 // Import handlers
 const GuideViewHandler = require('./commands/handlers/guide-view-handler');
@@ -315,5 +316,15 @@ process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
 });
 
-// Log in to Discord with your client's token
-client.login(config.token);
+// Connect to MongoDB and then log in to Discord
+async function start() {
+    try {
+        await connectToDatabase();
+        await client.login(config.token);
+    } catch (error) {
+        console.error('Failed to start bot:', error);
+        process.exit(1);
+    }
+}
+
+start();
