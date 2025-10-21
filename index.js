@@ -35,6 +35,56 @@ function loadCommands(client) {
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         const command = require(filePath);
+
+        if ('data' in command && 'execute' in command) {
+            client.commands.set(command.data.name, command);
+        } else {
+            console.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+        }
+    }
+}
+
+/**
+ * Retrieves a list of classes that have at least one guide from MongoDB
+ * @returns {Promise<string[]>} Array of class names that have guides
+ */
+async function getClassesWithGuides() {
+    try {
+        const { getDatabase } = require('./utils/database');
+        const db = getDatabase();
+        const guides = db.collection('guides');
+        
+        // Get distinct class names from the guides collection
+        const classNames = await guides.distinct('className');
+        
+        // Filter to only include valid BDO classes (case-insensitive)
+        const validClasses = classNames
+            .map(name => {
+                // Find matching BDO class (case-insensitive)
+                return BDO_CLASSES.find(bdoClass => 
+                    bdoClass.toLowerCase() === name.toLowerCase()
+                );
+            })
+            .filter(name => name !== undefined);
+        
+        return validClasses.length > 0 ? validClasses : BDO_CLASSES;
+    } catch (error) {
+        console.error('Error fetching classes from database:', error);
+        return BDO_CLASSES; // Fallback to all classes if error
+    }
+}
+
+/**
+ * Loads and registers all commands from the commands directory
+ * @param {Client} client - Discord client instance
+ */
+function loadCommands(client) {
+    const commandsPath = path.join(__dirname, 'commands');
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
         
         if ('data' in command && 'execute' in command) {
             client.commands.set(command.data.name, command);
@@ -226,7 +276,7 @@ client.on(Events.InteractionCreate, async interaction => {
             // Determine which classes to show based on command type
             let classesToShow = BDO_CLASSES;
             if (COMMANDS_REQUIRING_EXISTING_GUIDES.includes(commandName)) {
-                classesToShow = getClassesWithGuides();
+                classesToShow = await getClassesWithGuides();
             }
             
             // Filter classes based on user input
