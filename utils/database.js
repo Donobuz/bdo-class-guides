@@ -19,11 +19,16 @@ async function connectToDatabase() {
             throw new Error('MONGO_URL or MONGODB_URI environment variable is not set');
         }
 
-        // MongoDB client options with TLS/SSL configuration for Railway compatibility
-        const options = {
+        // MongoDB client options
+        // Disable TLS for Railway's internal MongoDB, enable for Atlas
+        const isAtlas = uri.includes('mongodb+srv://') || uri.includes('mongodb.net');
+        const options = isAtlas ? {
+            // For MongoDB Atlas - relax TLS requirements for Railway compatibility
             tls: true,
-            tlsAllowInvalidCertificates: false,
-            tlsAllowInvalidHostnames: false,
+            tlsAllowInvalidCertificates: true,  // Allow Railway's OpenSSL
+            serverSelectionTimeoutMS: 10000,
+        } : {
+            // For Railway's internal MongoDB - no TLS needed
             serverSelectionTimeoutMS: 10000,
         };
 
