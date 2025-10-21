@@ -18,7 +18,15 @@ async function connectToDatabase() {
             throw new Error('MONGODB_URI environment variable is not set');
         }
 
-        client = new MongoClient(uri);
+        // MongoDB client options with TLS/SSL configuration for Railway compatibility
+        const options = {
+            tls: true,
+            tlsAllowInvalidCertificates: false,
+            tlsAllowInvalidHostnames: false,
+            serverSelectionTimeoutMS: 10000,
+        };
+
+        client = new MongoClient(uri, options);
         await client.connect();
         
         db = client.db('bdo-class-guides');
