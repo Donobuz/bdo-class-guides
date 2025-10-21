@@ -168,7 +168,7 @@ function createSavedGuideEmbed(guideData) {
                 value: reasoning,
                 inline: false
             });
-            // Separator before movement/combos
+            // Separator after reasoning
             mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
         }
 
@@ -178,6 +178,10 @@ function createSavedGuideEmbed(guideData) {
                 value: movementExample,
                 inline: false
             });
+            // Separator after movement pattern (only if there's more content after)
+            if (pvpCombo) {
+                mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
+            }
         }
 
         if (pvpCombo) {
@@ -186,6 +190,7 @@ function createSavedGuideEmbed(guideData) {
                 value: pvpCombo,
                 inline: false
             });
+            // No separator after last field
         }
     } else {
         // PvE - just add reasoning if present
