@@ -12,10 +12,11 @@ async function connectToDatabase() {
     }
 
     try {
-        const uri = process.env.MONGODB_URI;
+        // Support both Railway's MONGO_URL and custom MONGODB_URI
+        const uri = process.env.MONGO_URL || process.env.MONGODB_URI;
         
         if (!uri) {
-            throw new Error('MONGODB_URI environment variable is not set');
+            throw new Error('MONGO_URL or MONGODB_URI environment variable is not set');
         }
 
         // MongoDB client options with TLS/SSL configuration for Railway compatibility
