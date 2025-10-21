@@ -48,12 +48,7 @@ Guides are organized by Class → Type (PvP/PvE) → Spec (Awakening/Succession)
 - Addons, artifacts, lightstones
 - Movement and combo videos
 
-**PvE Guides:**
-- Description, pros/cons
-- Crystals (by content tier)
-- Addons, artifacts, lightstones
-- Rotations and grinding spots
-- Demonstration videos
+**PvE Guides:** *(Coming soon - not yet implemented)*
 
 ## License
 
