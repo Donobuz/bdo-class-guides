@@ -161,7 +161,7 @@ function createSavedGuideEmbed(guideData) {
         // Separator after roles/positioning (end of step 2)
         mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
 
-        // Step 4: Artifacts and lightstones, reforge stones
+        // Step 4: Artifacts, lightstones, reforge stones, skills, reliable CCs
         if (guideData.artifact_and_lightstones) {
             mainEmbed.addFields({
                 name: 'Artifacts and Lightstones',
@@ -178,8 +178,26 @@ function createSavedGuideEmbed(guideData) {
             });
         }
 
+        if (guideData.skill_info) {
+            mainEmbed.addFields({
+                name: 'Skills',
+                value: guideData.skill_info,
+                inline: false
+            });
+        }
+
+        if (guideData.reliable_ccs && guideData.reliable_ccs.length > 0) {
+            mainEmbed.addFields({
+                name: 'Reliable CCs',
+                value: Array.isArray(guideData.reliable_ccs) 
+                    ? guideData.reliable_ccs.map(cc => `• ${cc}`).join('\n') 
+                    : guideData.reliable_ccs,
+                inline: false
+            });
+        }
+
         // Separator after step 4 (before step 5)
-        if (guideData.artifact_and_lightstones || guideData.reforge_stones) {
+        if (guideData.artifact_and_lightstones || guideData.reforge_stones || guideData.skill_info || guideData.reliable_ccs) {
             mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
         }
 

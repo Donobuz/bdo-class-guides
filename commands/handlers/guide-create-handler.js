@@ -119,8 +119,8 @@ class GuideCreateHandler {
                 if (fieldId === 'discord_id') return;
                 
                 const value = field.value;
-                // Handle arrays (pros/cons)
-                if (fieldId === 'pros' || fieldId === 'cons') {
+                // Handle arrays (pros/cons/reliable_ccs)
+                if (fieldId === 'pros' || fieldId === 'cons' || fieldId === 'reliable_ccs') {
                     tempData[fieldId] = value.split('\n').map(line => line.trim()).filter(line => line);
                 } else {
                     tempData[fieldId] = value;
@@ -145,7 +145,7 @@ class GuideCreateHandler {
                 const value = field.value;
                 const label = fieldId.charAt(0).toUpperCase() + fieldId.slice(1);
                 
-                if (fieldId === 'pros' || fieldId === 'cons') {
+                if (fieldId === 'pros' || fieldId === 'cons' || fieldId === 'reliable_ccs') {
                     const items = value.split('\n').filter(line => line.trim());
                     previewText += `\n**${label}:**\n`;
                     items.forEach(item => {

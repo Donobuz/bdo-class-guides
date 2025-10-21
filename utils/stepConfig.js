@@ -127,7 +127,7 @@ function getStepFields(guideType, stepNumber, guide = {}, isBotOwner = false) {
                 getValue: (g) => g.addonsImgur || ''
             }
         ],
-        // PvP Step 4: Artifacts, Lightstones, Reforge Stones
+        // PvP Step 4: Artifacts, Lightstones, Reforge Stones, Skills, Reliable CCs
         pvp_4: [
             {
                 id: 'artifact_and_lightstones',
@@ -146,6 +146,24 @@ function getStepFields(guideType, stepNumber, guide = {}, isBotOwner = false) {
                 maxLength: 2000,
                 required: true,
                 getValue: (g) => g.reforge_stones || ''
+            },
+            {
+                id: 'skill_info',
+                label: 'Skills (required)',
+                style: TextInputStyle.Paragraph,
+                placeholder: 'Locked skills, BSR skills, Quickslot skills, Rebams',
+                maxLength: 2000,
+                required: true,
+                getValue: (g) => g.skill_info || ''
+            },
+            {
+                id: 'reliable_ccs',
+                label: 'Reliable CCs (required)',
+                style: TextInputStyle.Paragraph,
+                placeholder: 'CCs you can safely use (one per line)',
+                maxLength: 1000,
+                required: true,
+                getValue: (g) => g.reliable_ccs?.join('\n') || ''
             }
         ],
         // PvP Step 5: Movement, Combat
