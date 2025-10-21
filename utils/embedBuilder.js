@@ -21,7 +21,7 @@ function isValidUrl(str) {
  * @returns {EmbedBuilder} - Enhanced embed builder with automatic field chunking
  */
 function createSafeEmbed() {
-    const embed = createSafeEmbed();
+    const embed = new EmbedBuilder();
     const originalAddFields = embed.addFields.bind(embed);
     
     embed.addFields = function(...fields) {
