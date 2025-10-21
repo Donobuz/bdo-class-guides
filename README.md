@@ -1,138 +1,60 @@
 # Black Desert Online Class Guides Bot
 
-A Discord bot for managing and sharing Black Desert Online class guides across multiple servers. Built to help BDO communities organize PvP and PvE builds, combos, and gameplay strategies for all classes.
-
-## What it does
-
-This bot lets your community create, edit, and view comprehensive class guides directly in Discord. Each guide includes crystal setups, addons, artifacts, combos, and video examples. The permission system is designed for multi-server deployment so admins can manage guides in their own server without affecting other communities.
+A Discord bot for managing and sharing Black Desert Online class guides. Communities can create, edit, and view comprehensive PvP and PvE builds with crystals, addons, artifacts, combos, and videos.
 
 ## Features
 
-- **Multi-server support** - Each server operates independently with its own role configuration
-- **Guild-scoped permissions** - Server admins can only modify guides created in their server
-- **Comprehensive guide system** - Supports all BDO classes with both Awakening and Succession specs
-- **Role-based access** - Two-tier permission system (Guide Creator and Guide Admin)
-- **Interactive guide creation** - Step-by-step modal forms for easy guide submission
-- **Cross-server creator ownership** - Guide creators can edit their guides from any server
+- **Multi-server support** - Independent role configuration per server
+- **Guild-scoped permissions** - Admins can only modify guides created in their server
+- **All BDO classes** - Supports Awakening and Succession specs
+- **Two-tier permissions** - Guide Creator and Guide Admin roles
+- **Interactive creation** - Step-by-step modal forms
 
 ## Commands
 
-- `/guide` - View class guides (PvP or PvE)
-- `/guide-create` - Submit a new guide
-- `/guide-edit` - Edit an existing guide
-- `/guide-delete` - Delete guides you have permission to remove
-- `/guides-setup` - Configure bot permissions (Admin only)
-- `/guide-test` - Create a test guide for development
+- `/guide` - View class guides
+- `/guide-create` - Create a new guide
+- `/guide-edit` - Edit your guides
+- `/guide-delete` - Delete guides you own
+- `/guides-setup` - Configure permissions (Admin only)
 
-## Setup
+## Getting Started
 
-1. Clone the repository
-```bash
-git clone https://github.com/yourusername/bdo-class-guides.git
-cd bdo-class-guides
+After inviting the bot to your server, an admin must configure roles:
+```
+/guides-setup roles creator1:@Role1 admin1:@AdminRole
 ```
 
-2. Install dependencies
-```bash
-npm install
-```
+**Managing roles:**
+- View settings: `/guides-setup view`  
+- Remove roles: `/guides-setup remove role1:@Role`  
+- Reset all: `/guides-setup reset`
 
-3. Create a `.env` file in the root directory
-```env
-CLIENT_ID=your_bot_client_id
-GUILD_ID=your_guild_id
-TOKEN=your_bot_token
-```
+## Permissions
 
-4. Deploy commands and start the bot
-```bash
-npm run start-all
-```
+**Guide Creator** - Create, edit, and delete own guides across all servers
 
-## Permission System
+**Guide Admin** - Edit/delete any guide created in their server
 
-The bot uses a two-tier role system that respects server boundaries:
+Roles respect server boundaries - admins can't modify guides from other servers.
 
-**Guide Creator** - Can create, edit, and delete their own guides from any server
+## Guide Content
 
-**Guide Admin** - Can edit and delete any guide that was created in their server
+Guides are organized by Class → Type (PvP/PvE) → Spec (Awakening/Succession)
 
-**Bot Owners** - Defined in `utils/permissions.js`, have full access across all servers
+**PvP Guides:**
+- Description, pros/cons
+- Crystals (T1/T2 capped, uncapped)
+- Addons, artifacts, lightstones
+- Movement and combo videos
 
-### Initial Configuration
-
-After adding the bot to your server, an administrator needs to run:
-
-```
-/guides-setup roles creator1:@Role1 creator2:@Role2 admin1:@AdminRole
-```
-
-You can configure up to 3 Guide Creator roles and 3 Guide Admin roles maximum. The command adds roles to your existing configuration without replacing them. To remove roles:
-
-```
-/guides-setup remove role1:@RoleToRemove
-```
-
-View current settings with `/guides-setup view` or reset everything with `/guides-setup reset`.
-
-## Guide Structure
-
-Guides are organized by:
-- Class (Warrior, Ranger, Ninja, etc.)
-- Type (PvP or PvE)
-- Spec (Awakening or Succession)
-
-Guide content varies by type:
-
-**PvP Guides** include:
-- Description and playstyle overview
-- Pros and cons
-- Crystal setups (T1 capped, T2 capped, Uncapped)
-- Addons, artifacts, and lightstones
-- Movement examples and combos
+**PvE Guides:**
+- Description, pros/cons
+- Crystals (by content tier)
+- Addons, artifacts, lightstones
+- Rotations and grinding spots
 - Demonstration videos
-
-**PvE Guides** include:
-- Description and playstyle overview
-- Pros and cons
-- Crystal setups for different content tiers
-- Addons, artifacts, and lightstones
-- Rotation explanations
-- Grinding spot recommendations
-- Demonstration videos
-
-## File Structure
-
-```
-bdo_class_guides/
-├── commands/           # Slash command definitions
-│   └── handlers/       # Command interaction handlers
-├── guides/            # Guide data (JSON files)
-│   └── [class]/
-│       └── [pvp|pve]/
-│           └── [awakening|succession]/
-├── server-settings/   # Per-guild configuration files
-└── utils/            # Helper functions and utilities
-```
-
-## Development
-
-The bot is built with discord.js v14 and uses the modern MessageFlags API.
-
-Run in development mode with auto-restart:
-```bash
-npm run dev
-```
-
-Deploy commands without restarting the bot:
-```bash
-npm run deploy
-```
-
-## Contributing
-
-If you find bugs or have suggestions, feel free to open an issue. This is primarily for my community but I'm open to feedback.
 
 ## License
 
-All rights reserved. This code is provided as-is for viewing and learning purposes only. You may not use, copy, modify, or distribute this software without explicit permission.
+All rights reserved. This code is provided for viewing purposes only. You may not use, copy, modify, or distribute this software without explicit permission.
