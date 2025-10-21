@@ -25,7 +25,7 @@
   "dependencies": {
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
-    "mongodb": "^6.20.0"
+    "mongodb": "^5.9.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
