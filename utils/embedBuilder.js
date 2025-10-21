@@ -17,10 +17,75 @@ function isValidUrl(str) {
 }
 
 /**
+ * Creates an EmbedBuilder that automatically chunks fields over 1024 characters
+ * @returns {EmbedBuilder} - Enhanced embed builder with automatic field chunking
+ */
+function createSafeEmbed() {
+    const embed = createSafeEmbed();
+    const originalAddFields = embed.addFields.bind(embed);
+    
+    embed.addFields = function(...fields) {
+        const safeFields = [];
+        
+        fields.flat().forEach(field => {
+            if (!field.value) {
+                safeFields.push(field);
+                return;
+            }
+            
+            const value = String(field.value);
+            if (value.length <= 1024) {
+                safeFields.push(field);
+                return;
+            }
+            
+            // Need to chunk this field
+            const chunks = [];
+            let remaining = value;
+            
+            while (remaining.length > 0) {
+                if (remaining.length <= 1024) {
+                    chunks.push(remaining);
+                    break;
+                }
+                
+                // Find a good break point (newline or space) before 1024 chars
+                let splitAt = 1024;
+                const lastNewline = remaining.lastIndexOf('\n', 1024);
+                const lastSpace = remaining.lastIndexOf(' ', 1024);
+                
+                // Prefer breaking at newline or space if within last 30% of limit
+                if (lastNewline > 716) { // 70% of 1024
+                    splitAt = lastNewline + 1;
+                } else if (lastSpace > 716) {
+                    splitAt = lastSpace + 1;
+                }
+                
+                chunks.push(remaining.substring(0, splitAt).trim());
+                remaining = remaining.substring(splitAt).trim();
+            }
+            
+            // Add chunks as separate fields
+            chunks.forEach((chunk, index) => {
+                safeFields.push({
+                    name: index === 0 ? field.name : '\u200B', // Invisible char for continuation
+                    value: chunk,
+                    inline: field.inline || false
+                });
+            });
+        });
+        
+        return originalAddFields(...safeFields);
+    };
+    
+    return embed;
+}
+
+/**
  * Creates an embed when no guide is available for a class
  */
 function createNoGuideEmbed(className, guideType) {
-    const embed = new EmbedBuilder()
+    const embed = createSafeEmbed()
         .setTitle(`${className} ${guideType.toUpperCase()} Guides`)
         .setDescription(`No ${guideType} guides available for ${className} yet.\n\nWould you like to create one?`)
         .setColor(0x0099FF)
@@ -36,7 +101,7 @@ function createNoGuideEmbed(className, guideType) {
 function createSavedGuideEmbed(guideData) {
     const { className, guideType, spec, description, pros, cons, crystalsImgur, crystalsT1Capped, crystalsT2Capped, crystalsUncapped, addonsImgur, artifactsImgur, lightstoneImgur, reasoning, pvpCombo, combatVideo, movementVideo, movementExample, pveCombo, submittedBy, username, createdAt } = guideData;
     
-    const mainEmbed = new EmbedBuilder()
+    const mainEmbed = createSafeEmbed()
         .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${spec.charAt(0).toUpperCase() + spec.slice(1)} - ${guideType.toUpperCase()}`)
         .setDescription(description || 'No description provided')
         .setColor(config.colors[className] || config.colors.primary)
@@ -156,7 +221,7 @@ function createSavedGuideEmbed(guideData) {
 
     // Add positioning image for PvP (if present)
     if (guideType === 'pvp' && guideData.positioningImage && isValidUrl(guideData.positioningImage)) {
-        const positioningEmbed = new EmbedBuilder()
+        const positioningEmbed = createSafeEmbed()
             .setTitle('Positioning Guide')
             .setImage(guideData.positioningImage)
             .setColor(config.colors[className] || config.colors.primary);
@@ -165,7 +230,7 @@ function createSavedGuideEmbed(guideData) {
 
     // Add Crystal Tiers as separate embeds (for PvP guides)
     if (crystalsT1Capped && isValidUrl(crystalsT1Capped)) {
-        const crystalsT1Embed = new EmbedBuilder()
+        const crystalsT1Embed = createSafeEmbed()
             .setTitle('Crystals - T1 Capped')
             .setImage(crystalsT1Capped)
             .setColor(config.colors[className] || config.colors.primary);
@@ -173,7 +238,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     if (crystalsT2Capped && isValidUrl(crystalsT2Capped)) {
-        const crystalsT2Embed = new EmbedBuilder()
+        const crystalsT2Embed = createSafeEmbed()
             .setTitle('Crystals - T2 Capped')
             .setImage(crystalsT2Capped)
             .setColor(config.colors[className] || config.colors.primary);
@@ -181,7 +246,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     if (crystalsUncapped && isValidUrl(crystalsUncapped)) {
-        const crystalsUncappedEmbed = new EmbedBuilder()
+        const crystalsUncappedEmbed = createSafeEmbed()
             .setTitle('Crystals - Uncapped')
             .setImage(crystalsUncapped)
             .setColor(config.colors[className] || config.colors.primary);
@@ -190,7 +255,7 @@ function createSavedGuideEmbed(guideData) {
 
     // Add single Crystals image (for PvE guides)
     if (crystalsImgur && isValidUrl(crystalsImgur)) {
-        const crystalsEmbed = new EmbedBuilder()
+        const crystalsEmbed = createSafeEmbed()
             .setTitle('Crystals')
             .setImage(crystalsImgur)
             .setColor(config.colors[className] || config.colors.primary);
@@ -199,7 +264,7 @@ function createSavedGuideEmbed(guideData) {
 
     // Add Addons image as a separate embed
     if (addonsImgur && isValidUrl(addonsImgur)) {
-        const addonsEmbed = new EmbedBuilder()
+        const addonsEmbed = createSafeEmbed()
             .setTitle('Addons')
             .setImage(addonsImgur)
             .setColor(config.colors[className] || config.colors.primary);
@@ -208,7 +273,7 @@ function createSavedGuideEmbed(guideData) {
 
     // Add Artifacts image as a separate embed
     if (artifactsImgur && isValidUrl(artifactsImgur)) {
-        const artifactsEmbed = new EmbedBuilder()
+        const artifactsEmbed = createSafeEmbed()
             .setTitle('Artifacts')
             .setImage(artifactsImgur)
             .setColor(config.colors[className] || config.colors.primary);
@@ -217,7 +282,7 @@ function createSavedGuideEmbed(guideData) {
 
     // Add Lightstone image as a separate embed
     if (lightstoneImgur && isValidUrl(lightstoneImgur)) {
-        const lightstoneEmbed = new EmbedBuilder()
+        const lightstoneEmbed = createSafeEmbed()
             .setTitle('Lightstone Set')
             .setImage(lightstoneImgur)
             .setColor(config.colors[className] || config.colors.primary);
@@ -233,7 +298,7 @@ function createSavedGuideEmbed(guideData) {
         if (match) {
             const videoId = match[2];
             const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-            const videoEmbed = new EmbedBuilder()
+            const videoEmbed = createSafeEmbed()
                 .setTitle('Gameplay Video')
                 .setURL(movementVideo)
                 .setImage(thumbnailUrl)
@@ -258,7 +323,7 @@ function createSavedGuideEmbed(guideData) {
         if (match) {
             const videoId = match[2];
             const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-            const videoEmbed = new EmbedBuilder()
+            const videoEmbed = createSafeEmbed()
                 .setTitle('Combat Video')
                 .setURL(combatVideo)
                 .setImage(thumbnailUrl)
@@ -285,7 +350,7 @@ function createSavedGuideEmbed(guideData) {
 function createSubmittedGuideEmbed(guideData) {
     const { className, guideType, spec, description, pros, cons, movement, combos, addonsImage, addonsText, crystalsImage, username } = guideData;
     
-    const embed = new EmbedBuilder()
+    const embed = createSafeEmbed()
         .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${spec.charAt(0).toUpperCase() + spec.slice(1)} - ${guideType.toUpperCase()}`)
         .setDescription(description)
         .setColor(config.colors[className] || config.colors.primary)
@@ -364,7 +429,7 @@ function createGuideSelectionEmbed(className, guideType) {
     const isAscension = isAscensionClass(className);
     const specText = isAscension ? 'Select a specialization (Awakening/Ascension)' : 'Select a specialization (Succession/Awakening)';
     
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${guideType.toUpperCase()} Guides`)
         .setDescription(specText)
         .setColor(config.colors[className] || config.colors.primary)
@@ -375,7 +440,7 @@ function createGuideSelectionEmbed(className, guideType) {
  * Creates an error embed
  */
 function createErrorEmbed(title, description) {
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle(`${title}`)
         .setDescription(description)
         .setColor(config.colors.error)
@@ -386,7 +451,7 @@ function createErrorEmbed(title, description) {
  * Creates a success embed
  */
 function createSuccessEmbed(title, description) {
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle(title)
         .setDescription(description)
         .setColor(config.colors.success || 0x00FF00)
@@ -397,7 +462,7 @@ function createSuccessEmbed(title, description) {
  * Creates a progress saved embed for guide creation/editing
  */
 function createProgressEmbed(stepName, previewText, color = config.colors.primary) {
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle(`Step Progress: ${stepName}`)
         .setDescription(`Progress saved!\n${previewText}`)
         .setColor(color)
@@ -410,7 +475,7 @@ function createProgressEmbed(stepName, previewText, color = config.colors.primar
 function createConfirmDeleteEmbed(guideInfo) {
     const { className, guideType, spec, description, submittedBy } = guideInfo;
     
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle('Confirm Guide Deletion')
         .setDescription('Are you sure you want to delete this guide?')
         .addFields(
@@ -428,7 +493,7 @@ function createConfirmDeleteEmbed(guideInfo) {
  * Creates embed for list of guides (for selection)
  */
 function createGuideListEmbed(title, description, className, count) {
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle(title)
         .setDescription(description)
         .setColor(config.colors[className] || config.colors.primary)
@@ -443,7 +508,7 @@ function createDeleteSuccessEmbed(className, guideType, spec, customMessage = nu
     const specDisplay = spec ? spec.charAt(0).toUpperCase() + spec.slice(1) : '';
     const description = customMessage || `Deleted ${className} ${specDisplay} ${guideType.toUpperCase()} guide.`;
     
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle('Guide Deleted Successfully')
         .setDescription(description)
         .setColor(config.colors.success || 0x00FF00)
@@ -454,7 +519,7 @@ function createDeleteSuccessEmbed(className, guideType, spec, customMessage = nu
  * Creates embed for guide creation success
  */
 function createGuideCreatedEmbed(className, guideType, spec) {
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle('Guide Created Successfully!')
         .setDescription(`Your ${className} ${spec} ${guideType.toUpperCase()} guide has been created and is now available for others to view!`)
         .addFields(
@@ -470,7 +535,7 @@ function createGuideCreatedEmbed(className, guideType, spec) {
  * Creates embed for guide update success
  */
 function createGuideUpdatedEmbed(className, guideType, spec) {
-    return new EmbedBuilder()
+    return createSafeEmbed()
         .setTitle('Guide Updated Successfully!')
         .setDescription(`Your ${className} ${spec} ${guideType.toUpperCase()} guide has been updated!`)
         .addFields(
