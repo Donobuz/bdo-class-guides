@@ -50,7 +50,7 @@ module.exports = {
             // Transform guides into user guides format
             const userGuides = allGuides.map(guide => ({
                 userId: guide.submittedById,
-                username: guide.username || 'Unknown User',
+                username: guide.submittedBy || guide.username || 'Unknown User',
                 spec: guide.spec,
                 guide: guide
             }));
