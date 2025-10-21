@@ -9,16 +9,55 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('roles')
-                .setDescription('Configure guide roles')
+                .setDescription('Configure guide roles (adds to existing roles)')
                 .addRoleOption(option =>
                     option
-                        .setName('creator')
-                        .setDescription('Role that can create, edit, and delete their own guides')
+                        .setName('creator1')
+                        .setDescription('Guide Creator role (can create, edit, delete own guides)')
                         .setRequired(false))
                 .addRoleOption(option =>
                     option
-                        .setName('admin')
-                        .setDescription('Role that can edit/delete any guide created in this server')
+                        .setName('creator2')
+                        .setDescription('Additional Guide Creator role')
+                        .setRequired(false))
+                .addRoleOption(option =>
+                    option
+                        .setName('creator3')
+                        .setDescription('Additional Guide Creator role')
+                        .setRequired(false))
+                .addRoleOption(option =>
+                    option
+                        .setName('admin1')
+                        .setDescription('Guide Admin role (can edit/delete guides from this server)')
+                        .setRequired(false))
+                .addRoleOption(option =>
+                    option
+                        .setName('admin2')
+                        .setDescription('Additional Guide Admin role')
+                        .setRequired(false))
+                .addRoleOption(option =>
+                    option
+                        .setName('admin3')
+                        .setDescription('Additional Guide Admin role')
+                        .setRequired(false)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('Remove guide roles')
+                .addRoleOption(option =>
+                    option
+                        .setName('role1')
+                        .setDescription('Role to remove from guide permissions')
+                        .setRequired(false))
+                .addRoleOption(option =>
+                    option
+                        .setName('role2')
+                        .setDescription('Additional role to remove')
+                        .setRequired(false))
+                .addRoleOption(option =>
+                    option
+                        .setName('role3')
+                        .setDescription('Additional role to remove')
                         .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
@@ -36,6 +75,8 @@ module.exports = {
         try {
             if (subcommand === 'roles') {
                 await handleRoleSetup(interaction, guildId);
+            } else if (subcommand === 'remove') {
+                await handleRoleRemove(interaction, guildId);
             } else if (subcommand === 'view') {
                 await handleViewSettings(interaction, guildId);
             } else if (subcommand === 'reset') {
@@ -52,11 +93,21 @@ module.exports = {
 };
 
 async function handleRoleSetup(interaction, guildId) {
-    const creatorRole = interaction.options.getRole('creator');
-    const adminRole = interaction.options.getRole('admin');
+    // Collect all provided roles
+    const creatorRoles = [
+        interaction.options.getRole('creator1'),
+        interaction.options.getRole('creator2'),
+        interaction.options.getRole('creator3')
+    ].filter(role => role !== null);
+    
+    const adminRoles = [
+        interaction.options.getRole('admin1'),
+        interaction.options.getRole('admin2'),
+        interaction.options.getRole('admin3')
+    ].filter(role => role !== null);
 
     // Check if at least one role is provided
-    if (!creatorRole && !adminRole) {
+    if (creatorRoles.length === 0 && adminRoles.length === 0) {
         return await interaction.reply({
             content: 'Please specify at least one role to configure.',
             flags: MessageFlags.Ephemeral
@@ -66,9 +117,34 @@ async function handleRoleSetup(interaction, guildId) {
     // Load current settings
     const settings = await loadServerSettings(guildId);
 
-    // Update roles
-    if (creatorRole) settings.guideCreatorRoleId = creatorRole.id;
-    if (adminRole) settings.guideAdminRoleId = adminRole.id;
+    // Check limits before adding
+    if (creatorRoles.length > 0) {
+        const newCreatorIds = creatorRoles.map(r => r.id);
+        const combinedCreatorIds = [...new Set([...settings.guideCreatorRoleIds, ...newCreatorIds])];
+        
+        if (combinedCreatorIds.length > 3) {
+            return await interaction.reply({
+                content: `Cannot add roles. Maximum of 3 Guide Creator roles allowed. You currently have ${settings.guideCreatorRoleIds.length} role(s) configured. Remove some roles first with \`/guides-setup remove\`.`,
+                flags: MessageFlags.Ephemeral
+            });
+        }
+        
+        settings.guideCreatorRoleIds = combinedCreatorIds;
+    }
+    
+    if (adminRoles.length > 0) {
+        const newAdminIds = adminRoles.map(r => r.id);
+        const combinedAdminIds = [...new Set([...settings.guideAdminRoleIds, ...newAdminIds])];
+        
+        if (combinedAdminIds.length > 3) {
+            return await interaction.reply({
+                content: `Cannot add roles. Maximum of 3 Guide Admin roles allowed. You currently have ${settings.guideAdminRoleIds.length} role(s) configured. Remove some roles first with \`/guides-setup remove\`.`,
+                flags: MessageFlags.Ephemeral
+            });
+        }
+        
+        settings.guideAdminRoleIds = combinedAdminIds;
+    }
 
     // Mark setup as complete
     if (!settings.setupComplete) {
@@ -87,18 +163,18 @@ async function handleRoleSetup(interaction, guildId) {
         .setColor(0x00FF00)
         .setTimestamp();
 
-    if (creatorRole) {
+    if (creatorRoles.length > 0) {
         embed.addFields({ 
-            name: 'Guide Creator Role', 
-            value: `<@&${creatorRole.id}>`,
+            name: 'Added Guide Creator Roles', 
+            value: creatorRoles.map(r => `<@&${r.id}>`).join('\n'),
             inline: true 
         });
     }
 
-    if (adminRole) {
+    if (adminRoles.length > 0) {
         embed.addFields({ 
-            name: 'Guide Admin Role', 
-            value: `<@&${adminRole.id}>`,
+            name: 'Added Guide Admin Roles', 
+            value: adminRoles.map(r => `<@&${r.id}>`).join('\n'),
             inline: true 
         });
     }
@@ -118,22 +194,22 @@ async function handleViewSettings(interaction, guildId) {
     const settings = await loadServerSettings(guildId);
 
     const embed = new EmbedBuilder()
-        .setTitle('⚙️ Guide System Settings')
+        .setTitle('Guide System Settings')
         .setDescription('Current configuration for the guide system')
         .setColor(0x3498db)
         .setTimestamp();
 
     // Role settings
-    const creatorRole = settings.guideCreatorRoleId 
-        ? `<@&${settings.guideCreatorRoleId}>` 
+    const creatorRoles = settings.guideCreatorRoleIds && settings.guideCreatorRoleIds.length > 0
+        ? settings.guideCreatorRoleIds.map(id => `<@&${id}>`).join('\n')
         : 'Not set';
-    const adminRole = settings.guideAdminRoleId 
-        ? `<@&${settings.guideAdminRoleId}>` 
+    const adminRoles = settings.guideAdminRoleIds && settings.guideAdminRoleIds.length > 0
+        ? settings.guideAdminRoleIds.map(id => `<@&${id}>`).join('\n')
         : 'Not set';
 
     embed.addFields(
-        { name: 'Guide Creator Role', value: creatorRole, inline: true },
-        { name: 'Guide Admin Role', value: adminRole, inline: true }
+        { name: 'Guide Creator Roles', value: creatorRoles, inline: true },
+        { name: 'Guide Admin Roles', value: adminRoles, inline: true }
     );
 
     // Setup info
@@ -154,6 +230,65 @@ async function handleViewSettings(interaction, guildId) {
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
+async function handleRoleRemove(interaction, guildId) {
+    // Collect all provided roles to remove
+    const rolesToRemove = [
+        interaction.options.getRole('role1'),
+        interaction.options.getRole('role2'),
+        interaction.options.getRole('role3')
+    ].filter(role => role !== null);
+
+    if (rolesToRemove.length === 0) {
+        return await interaction.reply({
+            content: 'Please specify at least one role to remove.',
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    // Load current settings
+    const settings = await loadServerSettings(guildId);
+    const roleIdsToRemove = rolesToRemove.map(r => r.id);
+    
+    // Remove from both arrays
+    const removedFromCreator = settings.guideCreatorRoleIds.filter(id => roleIdsToRemove.includes(id));
+    const removedFromAdmin = settings.guideAdminRoleIds.filter(id => roleIdsToRemove.includes(id));
+    
+    settings.guideCreatorRoleIds = settings.guideCreatorRoleIds.filter(id => !roleIdsToRemove.includes(id));
+    settings.guideAdminRoleIds = settings.guideAdminRoleIds.filter(id => !roleIdsToRemove.includes(id));
+    
+    // Save settings
+    await saveServerSettings(guildId, settings);
+
+    // Build response
+    const embed = new EmbedBuilder()
+        .setTitle('Guide Roles Removed')
+        .setDescription('The specified roles have been removed from guide permissions.')
+        .setColor(0xFF9800)
+        .setTimestamp();
+
+    if (removedFromCreator.length > 0) {
+        embed.addFields({
+            name: 'Removed from Guide Creator',
+            value: removedFromCreator.map(id => `<@&${id}>`).join('\n'),
+            inline: true
+        });
+    }
+
+    if (removedFromAdmin.length > 0) {
+        embed.addFields({
+            name: 'Removed from Guide Admin',
+            value: removedFromAdmin.map(id => `<@&${id}>`).join('\n'),
+            inline: true
+        });
+    }
+
+    if (removedFromCreator.length === 0 && removedFromAdmin.length === 0) {
+        embed.setDescription('None of the specified roles were configured for guide permissions.');
+    }
+
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+}
+
 async function handleReset(interaction, guildId) {
     const { getDefaultSettings } = require('../utils/serverSettings');
     const defaultSettings = getDefaultSettings();
@@ -161,7 +296,7 @@ async function handleReset(interaction, guildId) {
     await saveServerSettings(guildId, defaultSettings);
 
     const embed = new EmbedBuilder()
-        .setTitle('🔄 Settings Reset')
+        .setTitle('Settings Reset')
         .setDescription('All guide system settings have been reset to defaults.')
         .setColor(0xFF9800)
         .setTimestamp();

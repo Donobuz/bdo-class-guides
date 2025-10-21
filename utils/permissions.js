@@ -35,8 +35,8 @@ async function hasGuidePermission(member) {
     
     // Check if user has any of the guide roles
     return member.roles.cache.some(role => 
-        role.id === settings.guideCreatorRoleId ||
-        role.id === settings.guideAdminRoleId
+        settings.guideCreatorRoleIds.includes(role.id) ||
+        settings.guideAdminRoleIds.includes(role.id)
     );
 }
 
@@ -54,7 +54,7 @@ async function isGuideAdmin(member) {
     }
     
     return member.roles.cache.some(role => 
-        role.id === settings.guideAdminRoleId
+        settings.guideAdminRoleIds.includes(role.id)
     );
 }
 
@@ -84,11 +84,18 @@ async function getPermissionErrorMessage(guildId) {
     
     let message = '**Permission Denied**\n\nYou need one of the following roles to use guide commands:\n\n';
     
-    if (settings.guideCreatorRoleId) {
-        message += `• <@&${settings.guideCreatorRoleId}> (Guide Creator - Can create, edit, and delete own guides)\n`;
+    if (settings.guideCreatorRoleIds && settings.guideCreatorRoleIds.length > 0) {
+        message += '**Guide Creator Roles** (Can create, edit, and delete own guides):\n';
+        settings.guideCreatorRoleIds.forEach(roleId => {
+            message += `• <@&${roleId}>\n`;
+        });
     }
-    if (settings.guideAdminRoleId) {
-        message += `• <@&${settings.guideAdminRoleId}> (Guide Admin - Can edit/delete any guide created in this server)\n`;
+    
+    if (settings.guideAdminRoleIds && settings.guideAdminRoleIds.length > 0) {
+        message += '\n**Guide Admin Roles** (Can edit/delete any guide created in this server):\n';
+        settings.guideAdminRoleIds.forEach(roleId => {
+            message += `• <@&${roleId}>\n`;
+        });
     }
     
     message += '\nContact a server admin to get the appropriate role.';

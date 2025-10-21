@@ -64,8 +64,8 @@ async function saveServerSettings(guildId, settings) {
  */
 function getDefaultSettings() {
     return {
-        guideCreatorRoleId: null,       // Role ID that can create, edit, and delete their own guides
-        guideAdminRoleId: null,         // Role ID that can edit/delete any guide created in this server
+        guideCreatorRoleIds: [],        // Array of role IDs that can create, edit, and delete their own guides
+        guideAdminRoleIds: [],          // Array of role IDs that can edit/delete any guide created in this server
         allowedChannelIds: [],          // Channels where guide commands work (empty = all)
         requireApproval: false,         // Require moderator approval for new guides
         setupComplete: false,           // Track if initial setup is done
@@ -85,8 +85,8 @@ async function hasGuidePermission(member, guildId) {
     
     // Check if user has any of the guide roles
     return member.roles.cache.some(role => 
-        role.id === settings.guideCreatorRoleId ||
-        role.id === settings.guideAdminRoleId
+        settings.guideCreatorRoleIds.includes(role.id) ||
+        settings.guideAdminRoleIds.includes(role.id)
     );
 }
 
@@ -100,7 +100,7 @@ async function isGuideAdmin(member, guildId) {
     const settings = await loadServerSettings(guildId);
     
     return member.roles.cache.some(role => 
-        role.id === settings.guideAdminRoleId
+        settings.guideAdminRoleIds.includes(role.id)
     );
 }
 

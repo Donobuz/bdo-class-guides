@@ -64,10 +64,16 @@ The bot uses a two-tier role system that respects server boundaries:
 After adding the bot to your server, an administrator needs to run:
 
 ```
-/guides-setup roles creator:@RoleName admin:@RoleName
+/guides-setup roles creator1:@Role1 creator2:@Role2 admin1:@AdminRole
 ```
 
-This sets up which roles can create and manage guides. You can view current settings with `/guides-setup view` or reset everything with `/guides-setup reset`.
+You can configure up to 3 Guide Creator roles and 3 Guide Admin roles maximum. The command adds roles to your existing configuration without replacing them. To remove roles:
+
+```
+/guides-setup remove role1:@RoleToRemove
+```
+
+View current settings with `/guides-setup view` or reset everything with `/guides-setup reset`.
 
 ## Guide Structure
 
