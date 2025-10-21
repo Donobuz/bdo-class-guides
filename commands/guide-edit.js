@@ -56,11 +56,18 @@ module.exports = {
             }));
             
             // Create a select menu for users
-            const userOptions = userGuides.map(userGuide => ({
-                label: `${userGuide.username} (${userGuide.spec.charAt(0).toUpperCase() + userGuide.spec.slice(1)})`,
-                description: userGuide.guide.description ? userGuide.guide.description.substring(0, 100) + '...' : 'No description',
-                value: `${userGuide.userId}_${userGuide.spec}`
-            }));
+            const userOptions = userGuides.map(userGuide => {
+                let desc = 'No description';
+                if (userGuide.guide.description) {
+                    const descStr = String(userGuide.guide.description);
+                    desc = descStr.length > 97 ? descStr.substring(0, 97) + '...' : descStr;
+                }
+                return {
+                    label: `${userGuide.username} (${userGuide.spec.charAt(0).toUpperCase() + userGuide.spec.slice(1)})`,
+                    description: desc,
+                    value: `${userGuide.userId}_${userGuide.spec}`
+                };
+            });
             
             const userSelectMenu = new StringSelectMenuBuilder()
                 .setCustomId(`edit_user_select_${className.toLowerCase()}_${guideType}`)
