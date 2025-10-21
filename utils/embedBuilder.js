@@ -158,38 +158,39 @@ function createSavedGuideEmbed(guideData) {
             });
         }
 
-        // Separator after roles/positioning
+        // Separator after roles/positioning (end of step 2)
         mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
 
-        // Add artifacts and lightstones
+        // Step 4: Artifacts and lightstones, reforge stones
         if (guideData.artifact_and_lightstones) {
             mainEmbed.addFields({
                 name: 'Artifacts and Lightstones',
                 value: guideData.artifact_and_lightstones,
                 inline: false
             });
-            // Separator after artifacts/lightstones
-            mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
         }
 
-        // Add reforge stones
         if (guideData.reforge_stones) {
             mainEmbed.addFields({
                 name: 'Reforge Stones',
                 value: guideData.reforge_stones,
                 inline: false
             });
-            // Separator after reforge stones
+        }
+
+        // Separator after step 4 (before step 5)
+        if (guideData.artifact_and_lightstones || guideData.reforge_stones) {
             mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
         }
 
+        // Step 5: Movement and combos
         if (movementExample) {
             mainEmbed.addFields({
-                name: 'Movement Pattern',
+                name: 'Movement Chain',
                 value: movementExample,
                 inline: false
             });
-            // Separator after movement pattern (only if there's more content after)
+            // Separator after movement chain (only if there's more content after)
             if (pvpCombo) {
                 mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
             }
@@ -218,7 +219,7 @@ function createSavedGuideEmbed(guideData) {
     if (guideType === 'pve') {
         if (movementExample) {
             mainEmbed.addFields({
-                name: 'Movement Pattern',
+                name: 'Movement Chain',
                 value: movementExample,
                 inline: false
             });
