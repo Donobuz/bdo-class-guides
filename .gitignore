@@ -19,6 +19,7 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
+*.lcov
 
 # nyc test coverage
 .nyc_output
@@ -62,6 +63,3 @@ Thumbs.db
 *.backup
 *-old.*
 *~
-
-# Server-specific settings (guild configurations)
-server-settings/

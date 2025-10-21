@@ -78,58 +78,87 @@ class GuideViewHandler {
     static async handleSpecSelect(interaction) {
         const { customId } = interaction;
         
+        // Handle both button clicks and select menu selections
         if (customId.startsWith('select_guides_')) {
-            const [, , className, guideType] = customId.split('_');
-            const selectedSpec = interaction.values[0];
+            const parts = customId.split('_');
             
-            try {
-                const allGuides = await loadAllGuides(className, guideType);
-                const specGuides = allGuides.filter(guide => guide.spec === selectedSpec);
-                
-                if (specGuides.length === 0) {
-                    return await interaction.reply({
-                        content: `No ${selectedSpec} guides found for ${className} ${guideType.toUpperCase()}.`,
-                        flags: MessageFlags.Ephemeral
-                    });
-                }
-                
-                // Create select menu for individual guides
-                const options = specGuides.map(guide => ({
-                    label: `${guide.submittedBy || guide.username || 'Unknown'}'s ${selectedSpec} Guide`,
-                    description: guide.description ? guide.description.substring(0, 100) + '...' : 'No description',
-                    value: `${guide.submittedById}`
-                }));
-                
-                const selectMenu = new StringSelectMenuBuilder()
-                    .setCustomId(`view_guide_${className}_${guideType}_${selectedSpec}`)
-                    .setPlaceholder('Select a guide to view')
-                    .addOptions(options);
-                
-                const row = new ActionRowBuilder().addComponents(selectMenu);
-                
-                const embeds = createGuideSelectionEmbed(
-                    `${className} ${guideType.toUpperCase()} - ${formatSpecForDisplay(className, selectedSpec) || 'Guides'}`,
-                    'Select a guide below to view the full details.',
-                    `${specGuides.length} ${selectedSpec} guide(s) available`,
-                    className
-                );
-                
-                await interaction.reply({
-                    embeds: embeds,
-                    components: [row],
-                    flags: MessageFlags.Ephemeral
-                });
-                
-            } catch (error) {
-                console.error('Error loading spec guides:', error);
-                await interaction.reply({
-                    content: 'An error occurred while loading guides.',
+            // Check if this is a button click (has spec in customId)
+            if (parts.length === 5) {
+                // Button format: select_guides_className_guideType_spec
+                const [, , className, guideType, selectedSpec] = parts;
+                return await this.showGuidesForSpec(interaction, className, guideType, selectedSpec);
+            } else if (parts.length === 4) {
+                // Select menu format: select_guides_className_guideType
+                const [, , className, guideType] = parts;
+                const selectedSpec = interaction.values[0];
+                return await this.showGuidesForSpec(interaction, className, guideType, selectedSpec);
+            }
+        }
+        return false;
+    }
+    
+    static async showGuidesForSpec(interaction, className, guideType, selectedSpec) {
+        try {
+            const allGuides = await loadAllGuides(className, guideType, selectedSpec);
+            
+            // Determine if this is from a button (needs update) or select menu (needs reply)
+            const isButton = interaction.isButton();
+            const responseMethod = isButton ? 'update' : 'reply';
+            
+            if (allGuides.length === 0) {
+                return await interaction[responseMethod]({
+                    content: `No ${selectedSpec} guides found for ${className} ${guideType.toUpperCase()}.`,
+                    embeds: [],
+                    components: [],
                     flags: MessageFlags.Ephemeral
                 });
             }
-            return true;
+            
+            // If only one guide, show it directly
+            if (allGuides.length === 1) {
+                const embeds = createSavedGuideEmbed(allGuides[0]);
+                return await interaction[responseMethod]({
+                    embeds: embeds,
+                    components: [],
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+            
+            // Multiple guides - create select menu
+            const options = allGuides.map(guide => ({
+                label: `${guide.submittedBy || guide.username || 'Unknown'}'s ${selectedSpec} Guide`,
+                description: guide.description ? guide.description.substring(0, 100) + '...' : 'No description',
+                value: `${guide.submittedById}`
+            }));
+            
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId(`view_guide_${className}_${guideType}_${selectedSpec}`)
+                .setPlaceholder('Select a guide to view')
+                .addOptions(options);
+            
+            const row = new ActionRowBuilder().addComponents(selectMenu);
+            
+            const embeds = createGuideSelectionEmbed(
+                `${className} ${guideType.toUpperCase()} - ${formatSpecForDisplay(className, selectedSpec) || selectedSpec}`,
+                'Select a guide below to view the full details.',
+                `${allGuides.length} ${selectedSpec} guide(s) available`,
+                className
+            );
+            
+            await interaction[responseMethod]({
+                embeds: embeds,
+                components: [row],
+                flags: MessageFlags.Ephemeral
+            });
+            
+        } catch (error) {
+            console.error('Error loading spec guides:', error);
+            await interaction.reply({
+                content: 'An error occurred while loading guides.',
+                flags: MessageFlags.Ephemeral
+            });
         }
-        return false;
+        return true;
     }
     
     static async handleGuideView(interaction) {
@@ -149,18 +178,6 @@ class GuideViewHandler {
                         flags: MessageFlags.Ephemeral
                     });
                 }
-                
-                console.log('Displaying guide:', {
-                    className,
-                    guideType,
-                    spec,
-                    submittedBy: guide.submittedBy,
-                    username: guide.username,
-                    hasVideo: !!guide.movementVideo,
-                    videoUrl: guide.movementVideo,
-                    hasCrystals: !!guide.crystalsImgur,
-                    hasAddons: !!guide.addonsImgur
-                });
                 
                 // Use embedBuilder to create guide embeds
                 const embeds = createSavedGuideEmbed(guide);

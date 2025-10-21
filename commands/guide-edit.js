@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, StringSelectMenuBuilder, ActionRowBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { loadAllGuidesForClassType } = require('../utils/dataManager');
-const { hasGuidePermission, isSetupComplete, getPermissionErrorMessage } = require('../utils/permissions');
+const { checkGuideManagementPermission } = require('../utils/permissions');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -21,28 +21,16 @@ module.exports = {
                 )),
 
     async execute(interaction) {
-        const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
-        
-        // Check if setup is complete
-        const setupComplete = await isSetupComplete(interaction.guild.id);
-        if (!setupComplete && !isAdmin) {
-            const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
+        // Check permissions
+        const permissionCheck = await checkGuideManagementPermission(interaction);
+        if (!permissionCheck.canProceed) {
             return await interaction.reply({
-                content: errorMsg,
-                flags: MessageFlags.Ephemeral
-            });
-        }
-        
-        // Check permissions - either admin or has guide permission
-        const hasPermission = await hasGuidePermission(interaction.member);
-        if (!isAdmin && !hasPermission) {
-            const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
-            return await interaction.reply({
-                content: errorMsg,
+                content: permissionCheck.errorMessage,
                 flags: MessageFlags.Ephemeral
             });
         }
 
+        const { canManageAllGuides } = permissionCheck;
         const className = interaction.options.getString('class');
         const guideType = interaction.options.getString('type');
         const userId = interaction.user.id;
@@ -57,8 +45,8 @@ module.exports = {
             });
         }
 
-        // If user is admin, show all guides for selection
-        if (isAdmin) {
+        // If user is admin OR guide moderator, show all guides for selection
+        if (canManageAllGuides) {
             // Transform guides into user guides format
             const userGuides = allGuides.map(guide => ({
                 userId: guide.submittedById,

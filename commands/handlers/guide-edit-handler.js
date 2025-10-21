@@ -99,14 +99,15 @@ class GuideEditHandler {
     // Generic function to show a step modal
     static async showStepModal(interaction, className, guideType, spec, userId, stepNumber, guide) {
         const totalSteps = getTotalSteps(guideType);
-        const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+        const { isBotOwner } = require('../../utils/permissions');
+        const isBotOwnerUser = isBotOwner(interaction.user.id);
         
         const modal = new ModalBuilder()
             .setCustomId(`edit_step${stepNumber}_${className}_${guideType}_${spec}_${userId}`)
             .setTitle(`Edit ${createGuideTitle(className, guideType, spec)} - Step ${stepNumber}/${totalSteps}`);
         
         // Get fields dynamically based on step and guide type
-        const fields = getStepFields(guideType, stepNumber, guide, isAdmin);
+        const fields = getStepFields(guideType, stepNumber, guide, isBotOwnerUser);
         
         // Add fields to modal (max 5 components per modal)
         fields.forEach(field => {

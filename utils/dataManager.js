@@ -88,7 +88,7 @@ async function loadAllGuides(className, guideType, spec) {
         
         return guides;
     } catch (error) {
-        console.log(`Error loading guides from ${guidesDir}:`, error);
+        // Directory doesn't exist yet - return empty array
         return guides;
     }
 }
@@ -109,8 +109,33 @@ async function loadGuideByDiscordId(className, guideType, spec, discordId) {
         const guide = JSON.parse(data);
         return guide;
     } catch (error) {
-        console.log(`Guide not found: guides/${className.toLowerCase()}/${guideType}/${spec}/${discordId}.json`);
+        // Guide file doesn't exist
         return null;
+    }
+}
+
+/**
+ * Deletes a guide file
+ * @param {string} className - Class name
+ * @param {string} guideType - Guide type (pvp/pve)
+ * @param {string} spec - Spec (succession/awakening)
+ * @param {string} discordId - Discord user ID
+ * @returns {Promise<boolean>} - True if deleted, false if not found
+ */
+async function deleteGuide(className, guideType, spec, discordId) {
+    const guideFilePath = path.join(__dirname, '..', 'guides', className.toLowerCase(), guideType, spec, `${discordId}.json`);
+    
+    try {
+        await fs.unlink(guideFilePath);
+        console.log(`Guide deleted successfully: ${guideFilePath}`);
+        return true;
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            // File doesn't exist
+            return false;
+        }
+        console.error(`Error deleting guide: ${error}`);
+        throw error;
     }
 }
 
@@ -118,5 +143,6 @@ module.exports = {
     saveGuideData,
     loadAllGuides,
     loadAllGuidesForClassType,
-    loadGuideByDiscordId
+    loadGuideByDiscordId,
+    deleteGuide
 };

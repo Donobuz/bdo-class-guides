@@ -22,14 +22,15 @@ class GuideCreateHandler {
     // Generic function to show a step modal
     static async showStepModal(interaction, className, guideType, spec, stepNumber, guide = {}) {
         const totalSteps = getTotalSteps(guideType);
-        const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+        const { isBotOwner } = require('../../utils/permissions');
+        const isBotOwnerUser = isBotOwner(interaction.user.id);
         
         const modal = new ModalBuilder()
             .setCustomId(`submit_guide_step${stepNumber}_${className}_${guideType}_${spec}`)
             .setTitle(`${createGuideTitle(className, guideType, spec)} - Step ${stepNumber}/${totalSteps}`);
         
         // Get fields dynamically based on step and guide type
-        const fields = getStepFields(guideType, stepNumber, guide, isAdmin);
+        const fields = getStepFields(guideType, stepNumber, guide, isBotOwnerUser);
         
         // Add fields to modal (max 5 components per modal)
         fields.forEach(field => {
@@ -50,7 +51,48 @@ class GuideCreateHandler {
 
         try {
             const userId = interaction.user.id;
-            const tempKey = `${userId}_${className}_${guideType}_${spec}`;
+            
+            // Check if discord_id is provided (bot owner feature in step 1) BEFORE creating tempKey
+            let targetUserId = userId;
+            let targetUserTag = interaction.user.tag;
+            
+            if (stepNumber === 1) {
+                const fields = interaction.fields.fields;
+                if (fields.has('discord_id')) {
+                    const discordIdValue = fields.get('discord_id').value.trim();
+                    if (discordIdValue) {
+                        try {
+                            const targetUser = await interaction.client.users.fetch(discordIdValue);
+                            targetUserId = targetUser.id;
+                            targetUserTag = targetUser.tag;
+                        } catch (error) {
+                            console.error('Error fetching user by discord_id:', error);
+                            return await interaction.reply({
+                                content: `Could not find user with ID: ${discordIdValue}. Please check the Discord ID and try again.`,
+                                flags: MessageFlags.Ephemeral
+                            });
+                        }
+                    }
+                }
+            } else {
+                // For steps 2+, check if there's an existing proxy submission
+                // Look for a tempKey where actualSubmitterId matches current user
+                if (global.tempGuideData) {
+                    const matchingSuffix = `_${className}_${guideType}_${spec}`;
+                    const existingKey = Object.keys(global.tempGuideData).find(key => 
+                        key.endsWith(matchingSuffix) && 
+                        global.tempGuideData[key].actualSubmitterId === userId
+                    );
+                    
+                    if (existingKey) {
+                        // Extract the target user ID from the existing key
+                        targetUserId = existingKey.split('_')[0];
+                        targetUserTag = global.tempGuideData[existingKey].submittedBy;
+                    }
+                }
+            }
+            
+            const tempKey = `${targetUserId}_${className}_${guideType}_${spec}`;
             
             // Initialize or get temp data
             global.tempGuideData = global.tempGuideData || {};
@@ -59,8 +101,8 @@ class GuideCreateHandler {
                     className,
                     guideType,
                     spec,
-                    submittedById: userId,
-                    submittedBy: interaction.user.tag,
+                    submittedById: targetUserId,
+                    submittedBy: targetUserTag,
                     actualSubmitterId: userId, // Track who actually submitted it
                     guildId: interaction.guild.id, // Track which server created the guide
                     guildName: interaction.guild.name // Store server name for display
@@ -71,31 +113,6 @@ class GuideCreateHandler {
 
             // Extract all field values from the modal
             const fields = interaction.fields.fields;
-            
-            // Check if discord_id is provided (admin feature in step 1)
-            let targetUserId = userId;
-            let targetUserTag = interaction.user.tag;
-            
-            if (stepNumber === 1 && fields.has('discord_id')) {
-                const discordIdValue = fields.get('discord_id').value.trim();
-                if (discordIdValue) {
-                    try {
-                        const targetUser = await interaction.client.users.fetch(discordIdValue);
-                        targetUserId = targetUser.id;
-                        targetUserTag = targetUser.tag;
-                    } catch (error) {
-                        console.error('Error fetching user by discord_id:', error);
-                        return await interaction.reply({
-                            content: `Could not find user with ID: ${discordIdValue}. Please check the Discord ID and try again.`,
-                            flags: MessageFlags.Ephemeral
-                        });
-                    }
-                }
-            }
-            
-            // Update submitter info if it changed
-            tempData.submittedById = targetUserId;
-            tempData.submittedBy = targetUserTag;
             
             fields.forEach((field, fieldId) => {
                 // Skip discord_id field - it's not part of the guide data
@@ -193,8 +210,21 @@ class GuideCreateHandler {
 
         try {
             const userId = interaction.user.id;
-            const tempKey = `${userId}_${className}_${guideType}_${spec}`;
-            const tempData = global.tempGuideData?.[tempKey];
+            
+            // First try with the current user's ID
+            let tempKey = `${userId}_${className}_${guideType}_${spec}`;
+            let tempData = global.tempGuideData?.[tempKey];
+            
+            // If not found, check if this is a proxy submission (bot owner creating for someone else)
+            // Look for any tempKey that matches the class/type/spec pattern
+            if (!tempData && global.tempGuideData) {
+                const matchingSuffix = `_${className}_${guideType}_${spec}`;
+                tempKey = Object.keys(global.tempGuideData).find(key => 
+                    key.endsWith(matchingSuffix) && 
+                    global.tempGuideData[key].actualSubmitterId === userId
+                );
+                tempData = tempKey ? global.tempGuideData[tempKey] : null;
+            }
 
             if (!tempData) {
                 return await interaction.reply({
@@ -228,8 +258,21 @@ class GuideCreateHandler {
 
         try {
             const userId = interaction.user.id;
-            const tempKey = `${userId}_${className}_${guideType}_${spec}`;
-            const tempData = global.tempGuideData?.[tempKey];
+            
+            // First try with the current user's ID
+            let tempKey = `${userId}_${className}_${guideType}_${spec}`;
+            let tempData = global.tempGuideData?.[tempKey];
+            
+            // If not found, check if this is a proxy submission (bot owner creating for someone else)
+            // Look for any tempKey that matches the class/type/spec pattern
+            if (!tempData && global.tempGuideData) {
+                const matchingSuffix = `_${className}_${guideType}_${spec}`;
+                tempKey = Object.keys(global.tempGuideData).find(key => 
+                    key.endsWith(matchingSuffix) && 
+                    global.tempGuideData[key].actualSubmitterId === userId
+                );
+                tempData = tempKey ? global.tempGuideData[tempKey] : null;
+            }
 
             if (!tempData) {
                 return await interaction.reply({
@@ -302,8 +345,8 @@ class GuideCreateHandler {
                 flags: MessageFlags.Ephemeral
             });
 
-            // Clean up temp data
-            const tempKey = `${userId}_${className}_${guideType}_${spec}`;
+            // Clean up temp data - use the submittedById from tempData, not the passed userId
+            const tempKey = `${tempData.submittedById}_${className}_${guideType}_${spec}`;
             delete global.tempGuideData[tempKey];
 
             return true;

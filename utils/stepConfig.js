@@ -5,10 +5,10 @@ const { TextInputBuilder, TextInputStyle } = require('discord.js');
  * @param {string} guideType - The guide type (pve/pvp)
  * @param {number} stepNumber - The step number (1-indexed)
  * @param {object} guide - The guide data object for pre-filling values
- * @param {boolean} isAdmin - Whether the user is an admin (adds optional discord_id field)
+ * @param {boolean} isBotOwner - Whether the user is a bot owner (adds optional discord_id field)
  * @returns {Array} - Array of TextInputBuilder objects
  */
-function getStepFields(guideType, stepNumber, guide = {}, isAdmin = false) {
+function getStepFields(guideType, stepNumber, guide = {}, isBotOwner = false) {
     const stepConfigs = {
         // PvP Step 1: Description, Pros, Cons
         pvp_1: [
@@ -39,7 +39,7 @@ function getStepFields(guideType, stepNumber, guide = {}, isAdmin = false) {
                 required: true,
                 getValue: (g) => g.cons?.join('\n') || ''
             },
-            ...(isAdmin ? [{
+            ...(isBotOwner ? [{
                 id: 'discord_id',
                 label: 'Submit for User (Discord ID - Optional)',
                 style: TextInputStyle.Short,
@@ -234,7 +234,7 @@ function getStepFields(guideType, stepNumber, guide = {}, isAdmin = false) {
                 required: true,
                 getValue: (g) => g.crystalsImgur || ''
             },
-            ...(isAdmin ? [{
+            ...(isBotOwner ? [{
                 id: 'discord_id',
                 label: 'Submit for User (Discord ID - Optional)',
                 style: TextInputStyle.Short,

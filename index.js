@@ -261,7 +261,10 @@ client.on(Events.InteractionCreate, async interaction => {
     if (interaction.isButton()) {
         let handled = false;
         
-        // Try custom handlers first
+        // Try guide view handlers first
+        if (!handled) handled = await GuideViewHandler.handleSpecSelect(interaction);
+        
+        // Try custom handlers
         if (!handled) handled = await handleSpecSelectionButton(interaction);
         if (!handled) handled = await handleCancelDelete(interaction);
         

@@ -2,6 +2,21 @@ const { EmbedBuilder } = require('discord.js');
 const config = require('../config.js');
 
 /**
+ * Checks if a string is a valid URL
+ * @param {string} str - String to check
+ * @returns {boolean} - Whether the string is a valid URL
+ */
+function isValidUrl(str) {
+    if (!str || typeof str !== 'string') return false;
+    try {
+        const url = new URL(str);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Creates an embed when no guide is available for a class
  */
 function createNoGuideEmbed(className, guideType) {
@@ -51,17 +66,42 @@ function createSavedGuideEmbed(guideData) {
     // Add separator
     mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
 
-    // Add reasoning if present (for artifacts/lightstones)
-    if (reasoning) {
-        mainEmbed.addFields({
-            name: 'Build Reasoning',
-            value: reasoning,
-            inline: false
-        });
-    }
-
     // PvP specific fields
     if (guideType === 'pvp') {
+        // Add role descriptions
+        if (guideData.largeScaleRole) {
+            mainEmbed.addFields({
+                name: 'Large Scale Role',
+                value: guideData.largeScaleRole,
+                inline: false
+            });
+        }
+
+        if (guideData.smallScaleRole) {
+            mainEmbed.addFields({
+                name: 'Small Scale Role (1v1/Arsha)',
+                value: guideData.smallScaleRole,
+                inline: false
+            });
+        }
+
+        if (guideData.positioning) {
+            mainEmbed.addFields({
+                name: 'Positioning',
+                value: guideData.positioning,
+                inline: false
+            });
+        }
+
+        // Add reasoning if present (for artifacts/lightstones)
+        if (reasoning) {
+            mainEmbed.addFields({
+                name: 'Build Reasoning',
+                value: reasoning,
+                inline: false
+            });
+        }
+
         if (movementExample) {
             mainEmbed.addFields({
                 name: 'Movement Pattern',
@@ -74,6 +114,15 @@ function createSavedGuideEmbed(guideData) {
             mainEmbed.addFields({
                 name: 'PvP Combos',
                 value: pvpCombo,
+                inline: false
+            });
+        }
+    } else {
+        // PvE - just add reasoning if present
+        if (reasoning) {
+            mainEmbed.addFields({
+                name: 'Build Reasoning',
+                value: reasoning,
                 inline: false
             });
         }
@@ -105,8 +154,17 @@ function createSavedGuideEmbed(guideData) {
     // Create array to hold all embeds
     const embeds = [mainEmbed];
 
+    // Add positioning image for PvP (if present)
+    if (guideType === 'pvp' && guideData.positioningImage && isValidUrl(guideData.positioningImage)) {
+        const positioningEmbed = new EmbedBuilder()
+            .setTitle('Positioning Guide')
+            .setImage(guideData.positioningImage)
+            .setColor(config.colors[className] || config.colors.primary);
+        embeds.push(positioningEmbed);
+    }
+
     // Add Crystal Tiers as separate embeds (for PvP guides)
-    if (crystalsT1Capped) {
+    if (crystalsT1Capped && isValidUrl(crystalsT1Capped)) {
         const crystalsT1Embed = new EmbedBuilder()
             .setTitle('Crystals - T1 Capped')
             .setImage(crystalsT1Capped)
@@ -114,7 +172,7 @@ function createSavedGuideEmbed(guideData) {
         embeds.push(crystalsT1Embed);
     }
 
-    if (crystalsT2Capped) {
+    if (crystalsT2Capped && isValidUrl(crystalsT2Capped)) {
         const crystalsT2Embed = new EmbedBuilder()
             .setTitle('Crystals - T2 Capped')
             .setImage(crystalsT2Capped)
@@ -122,7 +180,7 @@ function createSavedGuideEmbed(guideData) {
         embeds.push(crystalsT2Embed);
     }
 
-    if (crystalsUncapped) {
+    if (crystalsUncapped && isValidUrl(crystalsUncapped)) {
         const crystalsUncappedEmbed = new EmbedBuilder()
             .setTitle('Crystals - Uncapped')
             .setImage(crystalsUncapped)
@@ -131,7 +189,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     // Add single Crystals image (for PvE guides)
-    if (crystalsImgur) {
+    if (crystalsImgur && isValidUrl(crystalsImgur)) {
         const crystalsEmbed = new EmbedBuilder()
             .setTitle('Crystals')
             .setImage(crystalsImgur)
@@ -140,7 +198,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     // Add Addons image as a separate embed
-    if (addonsImgur) {
+    if (addonsImgur && isValidUrl(addonsImgur)) {
         const addonsEmbed = new EmbedBuilder()
             .setTitle('Addons')
             .setImage(addonsImgur)
@@ -149,7 +207,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     // Add Artifacts image as a separate embed
-    if (artifactsImgur) {
+    if (artifactsImgur && isValidUrl(artifactsImgur)) {
         const artifactsEmbed = new EmbedBuilder()
             .setTitle('Artifacts')
             .setImage(artifactsImgur)
@@ -158,7 +216,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     // Add Lightstone image as a separate embed
-    if (lightstoneImgur) {
+    if (lightstoneImgur && isValidUrl(lightstoneImgur)) {
         const lightstoneEmbed = new EmbedBuilder()
             .setTitle('Lightstone Set')
             .setImage(lightstoneImgur)
@@ -167,7 +225,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     // Add movement video as embed with YouTube thumbnail
-    if (movementVideo) {
+    if (movementVideo && isValidUrl(movementVideo)) {
         // Check if it's a YouTube link
         const youtubeRegex = /(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/;
         const match = movementVideo.match(youtubeRegex);
@@ -193,7 +251,7 @@ function createSavedGuideEmbed(guideData) {
     }
 
     // Add combat video for PvP (separate from movement video)
-    if (combatVideo && guideType === 'pvp') {
+    if (combatVideo && guideType === 'pvp' && isValidUrl(combatVideo)) {
         const youtubeRegex = /(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/;
         const match = combatVideo.match(youtubeRegex);
 

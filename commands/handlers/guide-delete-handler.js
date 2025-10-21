@@ -1,8 +1,7 @@
 const { StringSelectMenuBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const { loadAllGuidesForClassType } = require('../../utils/dataManager');
+const { loadAllGuidesForClassType, deleteGuide, loadGuideByDiscordId } = require('../../utils/dataManager');
 const { createConfirmDeleteEmbed, createDeleteSuccessEmbed, createGuideListEmbed, createErrorEmbed } = require('../../utils/embedBuilder');
 const { canModifyGuide } = require('../../utils/permissions');
-const fs = require('fs');
 const path = require('path');
 const config = require('../../config.js');
 
@@ -213,11 +212,10 @@ class GuideDeleteHandler {
             const [, , , className, guideType, spec, userId] = interaction.customId.split('_');
             
             try {
-                // Load the guide to check permissions
-                const guidesDir = path.join(__dirname, '../../guides', className.toLowerCase(), guideType, spec);
-                const guideFile = path.join(guidesDir, `${userId}.json`);
+                // Load the guide data to verify it exists and check permissions
+                const guideData = await loadGuideByDiscordId(className, guideType, spec, userId);
                 
-                if (!fs.existsSync(guideFile)) {
+                if (!guideData) {
                     return await interaction.update({
                         content: 'Guide file not found.',
                         embeds: [],
@@ -225,9 +223,6 @@ class GuideDeleteHandler {
                         flags: MessageFlags.Ephemeral
                     });
                 }
-                
-                // Load guide data to check permissions
-                const guideData = JSON.parse(fs.readFileSync(guideFile, 'utf8'));
                 
                 // Check permissions
                 const permissionCheck = await canModifyGuide(interaction.member, guideData);
@@ -240,10 +235,10 @@ class GuideDeleteHandler {
                     });
                 }
                 
-                // Delete the specific guide file
-                if (fs.existsSync(guideFile)) {
-                    fs.unlinkSync(guideFile);
-                    
+                // Delete the guide using helper function
+                const deleted = await deleteGuide(className, guideType, spec, userId);
+                
+                if (deleted) {
                     const embed = createDeleteSuccessEmbed(className, guideType, spec);
                     
                     await interaction.update({
@@ -252,8 +247,10 @@ class GuideDeleteHandler {
                         flags: MessageFlags.Ephemeral
                     });
                 } else {
-                    await interaction.reply({
+                    await interaction.update({
                         content: 'Guide file not found.',
+                        embeds: [],
+                        components: [],
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -302,11 +299,10 @@ class GuideDeleteHandler {
                             continue;
                         }
                         
-                        const guidesDir = path.join(__dirname, '../../guides', className.toLowerCase(), guideType, guide.spec);
-                        const guideFile = path.join(guidesDir, `${userId}.json`);
+                        // Delete the guide using helper function
+                        const deleted = await deleteGuide(className, guideType, guide.spec, userId);
                         
-                        if (fs.existsSync(guideFile)) {
-                            fs.unlinkSync(guideFile);
+                        if (deleted) {
                             deletedCount++;
                             if (!deletedSpecs.includes(guide.spec)) {
                                 deletedSpecs.push(guide.spec);

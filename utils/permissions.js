@@ -150,6 +150,47 @@ async function canModifyGuide(member, guide) {
     return { allowed: true };
 }
 
+/**
+ * Checks if a member can manage guides (edit/delete)
+ * Verifies admin status, setup completion, and guide permissions
+ * @param {Object} interaction - Discord interaction object
+ * @returns {Promise<Object>} - { canProceed: boolean, isAdmin: boolean, canManageAllGuides: boolean, errorMessage?: string }
+ */
+async function checkGuideManagementPermission(interaction) {
+    const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+    const canManageAllGuides = isAdmin || await isGuideAdmin(interaction.member);
+    
+    // Check if setup is complete
+    const setupComplete = await isSetupComplete(interaction.guild.id);
+    if (!setupComplete && !isAdmin) {
+        const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
+        return {
+            canProceed: false,
+            isAdmin,
+            canManageAllGuides,
+            errorMessage: errorMsg
+        };
+    }
+    
+    // Check permissions - either admin or has guide permission
+    const hasPermission = await hasGuidePermission(interaction.member);
+    if (!isAdmin && !hasPermission) {
+        const errorMsg = await getPermissionErrorMessage(interaction.guild.id);
+        return {
+            canProceed: false,
+            isAdmin,
+            canManageAllGuides,
+            errorMessage: errorMsg
+        };
+    }
+
+    return {
+        canProceed: true,
+        isAdmin,
+        canManageAllGuides
+    };
+}
+
 module.exports = {
     hasGuidePermission,
     isGuideAdmin,
@@ -157,5 +198,6 @@ module.exports = {
     getPermissionErrorMessage,
     isBotOwner,
     canModifyGuide,
+    checkGuideManagementPermission,
     BOT_OWNER_IDS
 };
