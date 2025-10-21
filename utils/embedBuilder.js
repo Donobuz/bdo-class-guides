@@ -180,7 +180,7 @@ function createSavedGuideEmbed(guideData) {
 
         if (guideData.skill_info) {
             mainEmbed.addFields({
-                name: 'Skills',
+                name: 'Skill Information',
                 value: guideData.skill_info,
                 inline: false
             });
