@@ -164,7 +164,7 @@ function getStepFields(guideType, stepNumber, guide = {}, isBotOwner = false) {
                 label: 'Movement Example (required)',
                 style: TextInputStyle.Paragraph,
                 placeholder: 'Describe movement patterns, rotations, positioning...',
-                maxLength: 1000,
+                maxLength: 2000,
                 required: true,
                 getValue: (g) => g.movementExample || ''
             },
@@ -182,7 +182,7 @@ function getStepFields(guideType, stepNumber, guide = {}, isBotOwner = false) {
                 label: 'PvP Combo Example (required)',
                 style: TextInputStyle.Paragraph,
                 placeholder: 'Describe your main PvP combos...',
-                maxLength: 1000,
+                maxLength: 2000,
                 required: true,
                 getValue: (g) => g.pvpCombo || ''
             },
