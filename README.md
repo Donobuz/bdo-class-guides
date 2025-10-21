@@ -42,11 +42,12 @@ Roles respect server boundaries - admins can't modify guides from other servers.
 
 Guides are organized by Class → Type (PvP/PvE) → Spec (Awakening/Succession)
 
-**PvP Guides:**
-- Description, pros/cons
-- Crystals (T1/T2 capped, uncapped)
-- Addons, artifacts, lightstones
-- Movement and combo videos
+**PvP Guides include:**
+- **Step 1:** Description, pros/cons
+- **Step 2:** Large scale role, small scale role, positioning (with optional image)
+- **Step 3:** Crystal setups (T1 capped, T2 capped, uncapped), addons
+- **Step 4:** Artifacts, lightstones, reasoning
+- **Step 5:** Movement examples, combat combos (with optional videos)
 
 **PvE Guides:** *(Coming soon - not yet implemented)*
 
