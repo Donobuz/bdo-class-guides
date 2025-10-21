@@ -127,34 +127,25 @@ function getStepFields(guideType, stepNumber, guide = {}, isBotOwner = false) {
                 getValue: (g) => g.addonsImgur || ''
             }
         ],
-        // PvP Step 4: Artifacts, Lightstones
+        // PvP Step 4: Artifacts, Lightstones, Reforge Stones
         pvp_4: [
             {
-                id: 'artifactsImgur',
-                label: 'Artifacts Imgur Link (required)',
-                style: TextInputStyle.Short,
-                placeholder: 'https://i.imgur.com/example.png',
-                maxLength: 500,
-                required: true,
-                getValue: (g) => g.artifactsImgur || ''
-            },
-            {
-                id: 'lightstoneImgur',
-                label: 'Lightstone Set Imgur Link (required)',
-                style: TextInputStyle.Short,
-                placeholder: 'https://i.imgur.com/example.png',
-                maxLength: 500,
-                required: true,
-                getValue: (g) => g.lightstoneImgur || ''
-            },
-            {
-                id: 'reasoning',
-                label: 'Reasoning (required)',
+                id: 'artifact_and_lightstones',
+                label: 'Artifacts and Lightstones (required)',
                 style: TextInputStyle.Paragraph,
-                placeholder: 'Explain your artifact and lightstone choices...',
-                maxLength: 1000,
+                placeholder: 'Artifact and Lightstone choices',
+                maxLength: 2000,
                 required: true,
-                getValue: (g) => g.reasoning || ''
+                getValue: (g) => g.artifact_and_lightstones || ''
+            },
+            {
+                id: 'reforge_stones',
+                label: 'Reforge Stones (required)',
+                style: TextInputStyle.Paragraph,
+                placeholder: 'Describe your reforge stone choices...',
+                maxLength: 2000,
+                required: true,
+                getValue: (g) => g.reforge_stones || ''
             }
         ],
         // PvP Step 5: Movement, Combat

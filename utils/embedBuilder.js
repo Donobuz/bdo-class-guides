@@ -99,7 +99,7 @@ function createNoGuideEmbed(className, guideType) {
  * Now returns an array: [mainEmbed, ...imageEmbeds]
  */
 function createSavedGuideEmbed(guideData) {
-    const { className, guideType, spec, description, pros, cons, crystalsImgur, crystalsT1Capped, crystalsT2Capped, crystalsUncapped, addonsImgur, artifactsImgur, lightstoneImgur, reasoning, pvpCombo, combatVideo, movementVideo, movementExample, pveCombo, submittedBy, username, createdAt } = guideData;
+    const { className, guideType, spec, description, pros, cons, crystalsImgur, crystalsT1Capped, crystalsT2Capped, crystalsUncapped, addonsImgur, reasoning, pvpCombo, combatVideo, movementVideo, movementExample, pveCombo, submittedBy, username, createdAt } = guideData;
     
     const mainEmbed = createSafeEmbed()
         .setTitle(`${className.charAt(0).toUpperCase() + className.slice(1)} ${spec.charAt(0).toUpperCase() + spec.slice(1)} - ${guideType.toUpperCase()}`)
@@ -161,14 +161,25 @@ function createSavedGuideEmbed(guideData) {
         // Separator after roles/positioning
         mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
 
-        // Add reasoning if present (for artifacts/lightstones)
-        if (reasoning) {
+        // Add artifacts and lightstones
+        if (guideData.artifact_and_lightstones) {
             mainEmbed.addFields({
-                name: 'Artifact and Lightstone Reasoning',
-                value: reasoning,
+                name: 'Artifacts and Lightstones',
+                value: guideData.artifact_and_lightstones,
                 inline: false
             });
-            // Separator after reasoning
+            // Separator after artifacts/lightstones
+            mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
+        }
+
+        // Add reforge stones
+        if (guideData.reforge_stones) {
+            mainEmbed.addFields({
+                name: 'Reforge Stones',
+                value: guideData.reforge_stones,
+                inline: false
+            });
+            // Separator after reforge stones
             mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
         }
 
@@ -279,24 +290,6 @@ function createSavedGuideEmbed(guideData) {
             .setImage(addonsImgur)
             .setColor(config.colors[className] || config.colors.primary);
         embeds.push(addonsEmbed);
-    }
-
-    // Add Artifacts image as a separate embed
-    if (artifactsImgur && isValidUrl(artifactsImgur)) {
-        const artifactsEmbed = createSafeEmbed()
-            .setTitle('Artifacts')
-            .setImage(artifactsImgur)
-            .setColor(config.colors[className] || config.colors.primary);
-        embeds.push(artifactsEmbed);
-    }
-
-    // Add Lightstone image as a separate embed
-    if (lightstoneImgur && isValidUrl(lightstoneImgur)) {
-        const lightstoneEmbed = createSafeEmbed()
-            .setTitle('Lightstone Set')
-            .setImage(lightstoneImgur)
-            .setColor(config.colors[className] || config.colors.primary);
-        embeds.push(lightstoneEmbed);
     }
 
     // Add movement video as embed with YouTube thumbnail

@@ -46,7 +46,7 @@ Guides are organized by Class → Type (PvP/PvE) → Spec (Awakening/Succession)
 - **Step 1:** Description, pros/cons
 - **Step 2:** Large scale role, small scale role, positioning (with optional image)
 - **Step 3:** Crystal setups (T1 capped, T2 capped, uncapped), addons
-- **Step 4:** Artifacts, lightstones, reasoning
+- **Step 4:** Artifacts and lightstones, reforge stones
 - **Step 5:** Movement examples, combat combos (with optional videos)
 
 **PvE Guides:** *(Coming soon - not yet implemented)*
