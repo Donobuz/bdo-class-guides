@@ -158,13 +158,18 @@ function createSavedGuideEmbed(guideData) {
             });
         }
 
+        // Separator after roles/positioning
+        mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
+
         // Add reasoning if present (for artifacts/lightstones)
         if (reasoning) {
             mainEmbed.addFields({
-                name: 'Build Reasoning',
+                name: 'Artifact and Lightstone Reasoning',
                 value: reasoning,
                 inline: false
             });
+            // Separator before movement/combos
+            mainEmbed.addFields({ name: '\u200B', value: '\u200B', inline: false });
         }
 
         if (movementExample) {
