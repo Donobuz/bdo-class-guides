@@ -4,7 +4,8 @@
   "description": "Discord bot for Black Desert Online character class guides",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node deploy-commands.js && node index.js",
+    "start:dev": "node index.js",
     "dev": "nodemon index.js",
     "deploy": "node deploy-commands.js",
     "start-all": "npm run deploy && npm start",
